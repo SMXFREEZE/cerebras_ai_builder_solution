@@ -1,93 +1,55 @@
 import Link from "next/link";
 
+const LINKS = [
+  { href: "/tech", label: "Tech console", meta: "Scan workflows" },
+  { href: "/manager", label: "Manager dashboard", meta: "Assets and events" },
+  { href: "/manager/reconcile", label: "Reconciliation", meta: "Ops x facilities x finance" },
+  { href: "/dev/barcodes", label: "Barcode sheet", meta: "Printable QR test set" },
+];
+
 export default function HomePage() {
   return (
-    <div className="space-y-8">
-      <section>
-        <h1 className="text-3xl font-semibold">Asset tracking challenge</h1>
-        <p className="text-gray-600 mt-2 max-w-2xl">
-          You&apos;re looking at the starter. The hosted API runs separately and is
-          already populated with about a thousand assets, plus mock facilities and finance
-          data. Use the role switcher in the header to act as either a lab
-          technician (mobile) or an asset manager (desktop).
+    <div className="space-y-5">
+      <section className="rounded-md border border-gray-200 bg-white p-5 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+          Cerebras manufacturing
         </p>
-      </section>
-
-      <section className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white border rounded-lg p-5">
-          <h2 className="text-xl font-semibold">Technician</h2>
-          <p className="text-gray-600 text-sm mt-1">
-            Mobile scan workflows. Build these first.
-          </p>
-          <ul className="mt-4 space-y-2">
-            <li>
-              <Link className="text-blue-700 hover:underline" href="/tech">
-                /tech &nbsp;— landing
-              </Link>
-            </li>
-            <li>
-              <Link className="text-blue-700 hover:underline" href="/tech/receive">
-                /tech/receive
-              </Link>
-            </li>
-            <li>
-              <Link className="text-blue-700 hover:underline" href="/tech/store">
-                /tech/store
-              </Link>
-            </li>
-            <li>
-              <Link className="text-blue-700 hover:underline" href="/tech/deploy">
-                /tech/deploy
-              </Link>
-            </li>
-            <li>
-              <Link className="text-blue-700 hover:underline" href="/tech/transfer">
-                /tech/transfer
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div className="bg-white border rounded-lg p-5">
-          <h2 className="text-xl font-semibold">Manager</h2>
-          <p className="text-gray-600 text-sm mt-1">
-            Desktop dashboard. Build after the scan workflows.
-          </p>
-          <ul className="mt-4 space-y-2">
-            <li>
-              <Link className="text-blue-700 hover:underline" href="/manager">
-                /manager &nbsp;— landing
-              </Link>
-            </li>
-            <li>
-              <Link
-                className="text-blue-700 hover:underline"
-                href="/manager/reconcile"
-              >
-                /manager/reconcile
-              </Link>
-            </li>
-          </ul>
+        <h1 className="mt-2 text-3xl font-semibold text-gray-950">
+          Asset tracking operations
+        </h1>
+        <div className="mt-4 grid gap-3 sm:grid-cols-4">
+          <Metric label="Hot path" value="4 scans" />
+          <Metric label="Systems" value="3-way" />
+          <Metric label="Views" value="Tech + manager" />
+          <Metric label="Token" value="Server-only" />
         </div>
       </section>
 
-      <section className="bg-amber-50 border border-amber-200 rounded-lg p-5">
-        <h2 className="text-lg font-semibold">Before you start</h2>
-        <ol className="list-decimal ml-5 mt-2 space-y-1 text-sm text-gray-700">
-          <li>
-            Make sure the API is running (<code>pnpm dev</code> from the
-            monorepo root brings up both).
-          </li>
-          <li>
-            Read <code>starter/docs/api-reference.md</code> and{" "}
-            <code>starter/docs/tips.md</code>.
-          </li>
-          <li>
-            Read the full brief at <code>docs/CHALLENGE.md</code> in the
-            monorepo.
-          </li>
-        </ol>
+      <section className="grid gap-3 md:grid-cols-2">
+        {LINKS.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="rounded-md border border-gray-200 bg-white p-5 shadow-sm hover:border-blue-300 hover:shadow-md"
+          >
+            <div className="text-sm font-semibold text-gray-500">{link.meta}</div>
+            <div className="mt-2 text-xl font-semibold text-blue-700">
+              {link.label}
+            </div>
+          </Link>
+        ))}
       </section>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md bg-gray-50 p-3 ring-1 ring-inset ring-gray-200">
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {label}
+      </div>
+      <div className="mt-1 font-semibold text-gray-950">{value}</div>
     </div>
   );
 }

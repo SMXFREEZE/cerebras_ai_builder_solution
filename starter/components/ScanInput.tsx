@@ -12,7 +12,7 @@ export interface ScanInputProps {
 
 export function ScanInput({
   onScan,
-  placeholder = "Scan or type a tag and press Enter…",
+  placeholder = "Scan or type a tag and press Enter...",
   autoFocus = true,
   disabled = false,
   label,
@@ -38,7 +38,7 @@ export function ScanInput({
   return (
     <label className="block">
       {label ? (
-        <span className="block text-sm font-medium text-gray-700 mb-2">
+        <span className="mb-2 block text-sm font-medium text-gray-700">
           {label}
         </span>
       ) : null}
@@ -51,7 +51,7 @@ export function ScanInput({
         spellCheck={false}
         disabled={disabled}
         placeholder={placeholder}
-        className="w-full text-lg p-4 min-h-[44px] rounded-lg border-2 border-gray-300 focus:border-blue-600 focus:outline-none disabled:bg-gray-100"
+        className="w-full rounded-md border-2 border-gray-300 p-4 text-lg focus:border-blue-600 focus:outline-none disabled:bg-gray-100"
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();

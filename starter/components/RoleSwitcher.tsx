@@ -24,11 +24,11 @@ export function RoleSwitcher() {
     <button
       type="button"
       onClick={handleClick}
-      className="text-sm px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 min-h-[44px]"
+      className="min-h-[44px] rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
       aria-label={label}
     >
-      <span className="text-gray-500 mr-2">role: {role}</span>
-      <span className="font-medium">{label}</span>
+      <span className="mr-2 text-gray-500">role: {role}</span>
+      <span className="font-medium">{role === "tech" ? "Manager" : "Tech"}</span>
     </button>
   );
 }

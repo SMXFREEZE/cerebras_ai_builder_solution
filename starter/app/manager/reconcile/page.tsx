@@ -1,13 +1,26 @@
+import Link from "next/link";
+import { ReconcileView } from "@/components/ReconcileView";
+
 export default function ManagerReconcilePage() {
   return (
-    <div className="p-2">
-      <h1 className="text-2xl font-bold">Reconciliation report (stub)</h1>
-      <p className="text-gray-600 mt-2">
-        Build the three-way reconciliation view. Pull the joined data from the
-        server route at <code>/api/reconcile</code> (which you also need to
-        build) and present mismatches in a way that helps an asset manager
-        decide what to investigate. See <code>docs/tips.md</code>.
-      </p>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            Manager
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold text-gray-950">
+            Three-way reconciliation
+          </h1>
+        </div>
+        <Link
+          href="/manager"
+          className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm hover:bg-gray-50"
+        >
+          Assets
+        </Link>
+      </div>
+      <ReconcileView />
     </div>
   );
 }

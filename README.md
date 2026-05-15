@@ -1,45 +1,68 @@
-# Asset tracking challenge
+# Cerebras asset tracking challenge
 
-A take-home challenge for software engineering interns. Candidates build a frontend on top of a small local backend that simulates the operational asset tracking system of a multi-site research lab.
+Submission frontend for the manufacturing AI builder challenge. The backend in
+`api/` is unchanged; the product work lives in `starter/`.
 
-This is a **monorepo** with two apps you run side by side:
+## What is built
 
-- [`api/`](./api) — small Node/Fastify backend with a seeded SQLite database. Candidates don't modify it.
-- [`starter/`](./starter) — the Next.js starter that candidates fork. API client, types, base components, and stub pages already wired up.
+- `/tech/receive`, `/tech/store`, `/tech/deploy`, `/tech/transfer`: mobile-first scan flows with keyboard-scanner input, optional camera scanning through the browser `BarcodeDetector`, recovery states, and clear API error surfacing.
+- `/manager`: paginated/filterable asset list with state, site, custodian, and free-text search.
+- `/manager/assets/[tag]`: current asset detail plus newest-first event log.
+- `/manager/reconcile`: manager-friendly three-way ops/facilities/finance report.
+- `/api/reconcile`: server route that joins the three systems and returns structured, ranked reconciliation items.
+- `/dev/barcodes`: printable Code128 barcode sheet for demo assets, locations, and receiving badges.
 
-## Quick start
+## Run locally
 
 ```bash
 pnpm install
-
-# Runs the API on :8080 and the starter on :3000
+cp starter/.env.example starter/.env
 pnpm dev
 ```
 
-Open http://localhost:3000.
+Open `http://localhost:3000`.
 
-The starter reads `API_BASE_URL` and `API_TOKEN` from `starter/.env`. Copy `starter/.env.example` to `starter/.env` if you don't have one. Both are server-side only — the browser hits a proxy at `/api/upstream` that adds the token, so it never reaches the client.
-
-## What's in here
-
-| Document | For |
-|---|---|
-| [`docs/CHALLENGE.md`](./docs/CHALLENGE.md) | The candidate-facing brief |
-| [`docs/CONTEXT.md`](./docs/CONTEXT.md) | Background on the kind of system this is and why each piece exists. Optional. |
-| [`api/README.md`](./api/README.md) | How to run and test the API |
-| [`starter/README.md`](./starter/README.md) | How to run the starter |
-| [`starter/docs/api-reference.md`](./starter/docs/api-reference.md) | The API contract |
-| [`starter/docs/tips.md`](./starter/docs/tips.md) | Notes for candidates |
-| [`starter/docs/happy-path.md`](./starter/docs/happy-path.md) | 10-step smoke test for candidates |
-
-## Testing
+The default local values are:
 
 ```bash
-pnpm test          # all packages
-pnpm --filter @asset-tracking/api test
-pnpm --filter @asset-tracking/starter test
+API_BASE_URL=http://localhost:8080/v1
+API_TOKEN=local-dev-token-1234567890
 ```
 
-## License
+## Writeback decision
 
-MIT. See [LICENSE](./LICENSE).
+Deploy/store side effects live in `starter/app/api/workflows/[action]/route.ts`.
+The browser calls these same-origin workflow routes, and those routes call the
+upstream API with the server-only token.
+
+- Deploy first commits the ops scan, then writes the rack location to facilities and capitalizes the equipment row in finance.
+- Store checks the previous ops state before the transition. If an `in_service` asset is stored, the facilities rack assignment is cleared.
+- Receive and transfer do not write to facilities or finance.
+
+I kept this out of client components so the token never moves to the browser and
+so partial side-effect failures can be reported in one place.
+
+## Three calls I nearly made the other way
+
+1. I nearly used direct browser calls for scans because the starter proxy makes it easy. I moved mutations into workflow route handlers so deploy/store can be atomic from the UI perspective and keep finance/facilities writes server-side.
+2. I nearly hid seeded reconciliation issues behind aggregate counts. I chose explicit ranked cards because a manager needs the next human action, not only a drift number.
+3. I nearly made camera scanning mandatory. I kept keyboard-scanner input as the primary path and camera as an optional path because the desktop/tablet scanner is the true hot path and browser camera APIs vary.
+
+## Pushback / confusing bits
+
+- The brief says camera scanner support is expected, but the starter has no dependency and native browser barcode support is uneven. I treated camera as progressive enhancement and made the keyboard scanner path first-class.
+- The location examples mix storage locations and rack/RU locations. I made scanned locations accept `Site/Room/Rack` for storage and `Site/Room/Row/Rack/RU` for deploy so missing-RU errors are visible.
+- The API can commit the ops deploy before a downstream mock write fails. In a production system I would add an outbox/retry record rather than making the UI pretend the entire workflow is transactional.
+
+## Loom notes
+
+The microcopy choice I would call out: deploy success says both
+`Facilities rack assignment written` and `Finance capitalization written`. That
+wording is deliberately operational; the technician sees that the scan did more
+than change the local asset state.
+
+## Original challenge docs
+
+- [`docs/CHALLENGE.md`](./docs/CHALLENGE.md)
+- [`starter/docs/happy-path.md`](./starter/docs/happy-path.md)
+- [`starter/docs/api-reference.md`](./starter/docs/api-reference.md)
