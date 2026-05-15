@@ -18,6 +18,16 @@ import { sendError } from "../errors.js";
 import { findTransition } from "../domain/state-machine.js";
 import { isDeployLocationComplete, isValidTag } from "../domain/validation.js";
 
+function invalidTag(reply: Parameters<typeof sendError>[0], assetTag: string) {
+  return sendError(
+    reply,
+    400,
+    "invalid_tag_format",
+    "asset_tag must match /^C\\d{7}$/",
+    { asset_tag: assetTag },
+  );
+}
+
 export async function scansRoutes(app: FastifyInstance): Promise<void> {
   // POST /v1/scans/receive
   app.post("/v1/scans/receive", async (req, reply) => {
@@ -30,13 +40,7 @@ export async function scansRoutes(app: FastifyInstance): Promise<void> {
     const input = parse.data;
 
     if (!isValidTag(input.asset_tag)) {
-      return sendError(
-        reply,
-        400,
-        "invalid_tag_format",
-        "asset_tag must match /^C\\d{7}$/",
-        { asset_tag: input.asset_tag },
-      );
+      return invalidTag(reply, input.asset_tag);
     }
 
     const db = getDb();
@@ -113,6 +117,9 @@ export async function scansRoutes(app: FastifyInstance): Promise<void> {
       });
     }
     const input = parse.data;
+    if (!isValidTag(input.asset_tag)) {
+      return invalidTag(reply, input.asset_tag);
+    }
     const db = getDb();
     const asset = getAsset(db, input.asset_tag);
     if (!asset) {
@@ -160,6 +167,9 @@ export async function scansRoutes(app: FastifyInstance): Promise<void> {
       });
     }
     const input = parse.data;
+    if (!isValidTag(input.asset_tag)) {
+      return invalidTag(reply, input.asset_tag);
+    }
     if (!isDeployLocationComplete(input.location)) {
       return sendError(
         reply,
@@ -218,6 +228,9 @@ export async function scansRoutes(app: FastifyInstance): Promise<void> {
       });
     }
     const input = parse.data;
+    if (!isValidTag(input.asset_tag)) {
+      return invalidTag(reply, input.asset_tag);
+    }
     const db = getDb();
     const asset = getAsset(db, input.asset_tag);
     if (!asset) {

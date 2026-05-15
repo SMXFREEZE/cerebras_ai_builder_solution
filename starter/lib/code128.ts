@@ -132,6 +132,15 @@ function encodeValues(value: string): number[] {
   return values;
 }
 
+function escapeAttribute(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 export function code128Svg(value: string, height = 72): string {
   const moduleWidth = 2;
   const quiet = 20;
@@ -156,5 +165,5 @@ export function code128Svg(value: string, height = 72): string {
     }
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${value}"><rect width="${width}" height="${height}" fill="white" />${bars.join("")}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(value)}"><rect width="${width}" height="${height}" fill="white" />${bars.join("")}</svg>`;
 }

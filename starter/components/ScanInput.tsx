@@ -10,6 +10,12 @@ export interface ScanInputProps {
   label?: string;
 }
 
+function shouldKeepCurrentFocus(active: Element | null): boolean {
+  if (!(active instanceof HTMLElement)) return false;
+  if (active.isContentEditable) return true;
+  return ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(active.tagName);
+}
+
 export function ScanInput({
   onScan,
   placeholder = "Scan or type a tag and press Enter",
@@ -28,10 +34,10 @@ export function ScanInput({
   // Keep focus on the scanner input — if the tech taps elsewhere, refocus on next keystroke.
   useEffect(() => {
     if (disabled) return;
-    const refocus = () => {
+    const refocus = (event: KeyboardEvent) => {
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
       const active = document.activeElement;
-      if (active && active.tagName === "INPUT") return;
-      if (active && active.tagName === "BUTTON") return;
+      if (shouldKeepCurrentFocus(active)) return;
       ref.current?.focus();
     };
     window.addEventListener("keydown", refocus);

@@ -183,6 +183,43 @@ describe("scans: store + deploy + transitions", () => {
     expect(res.json().error.code).toBe("unknown_asset");
   });
 
+  it.each([
+    [
+      "store",
+      "/v1/scans/store",
+      {
+        asset_tag: "BADTAG",
+        location: storeLocation,
+        user_id: "tech-jane",
+        scan_payload: "STORE|BADTAG",
+      },
+    ],
+    [
+      "deploy",
+      "/v1/scans/deploy",
+      {
+        asset_tag: "BADTAG",
+        location: deployLocation,
+        user_id: "tech-jane",
+        scan_payload: "DEPLOY|BADTAG",
+      },
+    ],
+    [
+      "transfer",
+      "/v1/scans/transfer",
+      {
+        asset_tag: "BADTAG",
+        to_custodian: "tech-mike",
+        user_id: "tech-jane",
+        scan_payload: "TRANSFER|BADTAG|tech-mike",
+      },
+    ],
+  ])("%s: returns 400 invalid_tag_format for malformed tags", async (_name, url, body) => {
+    const res = await inject("POST", url, body);
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe("invalid_tag_format");
+  });
+
   it("each scan endpoint writes an event row", async () => {
     await inject("POST", "/v1/scans/store", {
       asset_tag: "C0000101",

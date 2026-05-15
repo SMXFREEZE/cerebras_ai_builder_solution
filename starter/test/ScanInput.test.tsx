@@ -28,4 +28,28 @@ describe("<ScanInput>", () => {
     fireEvent.keyDown(input, { key: "Enter" });
     expect(input.value).toBe("");
   });
+
+  it("does not steal focus from other editable controls", () => {
+    const onScan = vi.fn();
+    render(
+      <div>
+        <select aria-label="Asset class">
+          <option value="compute">compute</option>
+        </select>
+        <textarea aria-label="Manual note" />
+        <ScanInput onScan={onScan} />
+      </div>,
+    );
+
+    const select = screen.getByLabelText("Asset class");
+    select.focus();
+    fireEvent.keyDown(window, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(select);
+
+    const textarea = screen.getByLabelText("Manual note");
+    textarea.focus();
+    fireEvent.keyDown(window, { key: "A" });
+    expect(document.activeElement).toBe(textarea);
+    expect(onScan).not.toHaveBeenCalled();
+  });
 });

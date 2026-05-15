@@ -4,6 +4,7 @@ import { api } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/format";
 import { locationLabel } from "@/lib/locations";
 import { buildReconcileReport } from "@/lib/reconcile";
+import { reconcileEvidenceHref } from "@/lib/reconcile-ui";
 import type { ReconcileItem, ReconcileSeverity } from "@/lib/reconcile";
 import type { AssetState } from "@/lib/types";
 
@@ -317,7 +318,7 @@ function StandupBrief({
       : topItem.severity === "review"
         ? "border-amber-300/25 bg-amber-300/[0.045]"
         : "border-violet-300/25 bg-violet-300/[0.045]";
-  const evidenceHref = topItem.ops ? `/manager/assets/${topItem.tag}` : "/manager/reconcile";
+  const evidenceHref = reconcileEvidenceHref(topItem);
 
   return (
     <section className={`rounded-xl border p-5 ${tone}`}>
@@ -457,9 +458,11 @@ function ActionItem({ item }: { item: ReconcileItem }) {
         ? "border-amber-300/20 bg-amber-300/[0.06] text-amber-200"
         : "border-violet-300/20 bg-violet-300/[0.06] text-violet-200";
 
+  const href = reconcileEvidenceHref(item);
+
   return (
     <Link
-      href={`/manager/assets/${item.tag}`}
+      href={href}
       className="block rounded-lg border hairline bg-white/[0.015] p-3 transition hover:border-[var(--border-strong)] hover:bg-white/[0.04]"
     >
       <div className="flex items-center justify-between gap-3">

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { locationLabel } from "@/lib/locations";
+import { hasAssetEvidence, reconcileEvidenceHref } from "@/lib/reconcile-ui";
 import type { ReconcileItem, ReconcileReport, ReconcileSeverity } from "@/lib/reconcile";
 
 type LoadState =
@@ -199,6 +200,14 @@ function Metric({
 }
 
 function ReconcileCard({ item }: { item: ReconcileItem }) {
+  const canOpenAsset = hasAssetEvidence(item);
+  const tagBadge = (
+    <span className="font-mono">
+      {item.tag}
+      {canOpenAsset ? " →" : " · external"}
+    </span>
+  );
+
   return (
     <article className={`rounded-xl border p-5 ${SEVERITY_RING[item.severity]}`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -224,12 +233,18 @@ function ReconcileCard({ item }: { item: ReconcileItem }) {
           </h2>
           <div className="mt-1 text-[12px] text-[var(--text-mute)]">Owner: {item.owner}</div>
         </div>
-        <Link
-          href={`/manager/assets/${item.tag}`}
-          className="inline-flex h-9 items-center rounded-lg border border-[var(--border-strong)] bg-white/[0.02] px-3 font-mono text-[13px] text-white transition hover:bg-white/[0.05]"
-        >
-          {item.tag} →
-        </Link>
+        {canOpenAsset ? (
+          <Link
+            href={reconcileEvidenceHref(item)}
+            className="inline-flex h-9 items-center rounded-lg border border-[var(--border-strong)] bg-white/[0.02] px-3 text-[13px] text-white transition hover:bg-white/[0.05]"
+          >
+            {tagBadge}
+          </Link>
+        ) : (
+          <span className="inline-flex h-9 items-center rounded-lg border border-[var(--border)] bg-white/[0.015] px-3 text-[13px] text-[var(--text-mute)]">
+            {tagBadge}
+          </span>
+        )}
       </div>
 
       <div className="mt-5 grid gap-3 md:grid-cols-3">
