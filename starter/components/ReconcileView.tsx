@@ -11,10 +11,22 @@ type LoadState =
   | { kind: "error"; message: string }
   | { kind: "ready"; report: ReconcileReport };
 
-const SEVERITY_CLASS: Record<ReconcileSeverity, string> = {
-  critical: "border-rose-200 bg-rose-50 text-rose-950",
-  review: "border-amber-200 bg-amber-50 text-amber-950",
-  watch: "border-violet-200 bg-violet-50 text-violet-950",
+const SEVERITY_RING: Record<ReconcileSeverity, string> = {
+  critical: "border-rose-300/25 bg-rose-300/[0.04]",
+  review: "border-amber-300/25 bg-amber-300/[0.04]",
+  watch: "border-violet-300/25 bg-violet-300/[0.04]",
+};
+
+const SEVERITY_TEXT: Record<ReconcileSeverity, string> = {
+  critical: "text-rose-200",
+  review: "text-amber-200",
+  watch: "text-violet-200",
+};
+
+const SEVERITY_LABEL: Record<ReconcileSeverity, string> = {
+  critical: "Fix today",
+  review: "Needs a human",
+  watch: "Probably fine",
 };
 
 export function ReconcileView() {
@@ -25,9 +37,7 @@ export function ReconcileView() {
     async function load(): Promise<void> {
       try {
         const res = await fetch("/api/reconcile", { cache: "no-store" });
-        const data = (await res.json()) as ReconcileReport | {
-          error?: { message?: string };
-        };
+        const data = (await res.json()) as ReconcileReport | { error?: { message?: string } };
         if (!res.ok) {
           throw new Error(
             "error" in data ? data.error?.message ?? "Reconcile failed" : "Reconcile failed",
@@ -51,16 +61,20 @@ export function ReconcileView() {
 
   if (state.kind === "loading") {
     return (
-      <div className="rounded-md border border-blue-200 bg-blue-50 p-4 text-sm font-medium text-blue-900">
-        Building reconciliation report...
+      <div className="flex items-center gap-3 rounded-xl border hairline bg-white/[0.02] px-5 py-4 text-[14px] text-[var(--text-dim)]">
+        <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-cyan-300" />
+        Pulling ops, facilities, and finance…
       </div>
     );
   }
 
   if (state.kind === "error") {
     return (
-      <div className="rounded-md border border-rose-200 bg-rose-50 p-4 text-sm text-rose-950">
-        {state.message}
+      <div className="rounded-xl border border-rose-300/25 bg-rose-300/[0.04] p-5 text-[14px] text-rose-100">
+        <div className="font-medium">{state.message}</div>
+        <div className="mt-1 text-[12px] text-[var(--text-mute)]">
+          The reconcile route lives at <code className="font-mono">/api/reconcile</code>. Check the server log.
+        </div>
       </div>
     );
   }
@@ -68,22 +82,22 @@ export function ReconcileView() {
   const { report } = state;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="grid gap-3 md:grid-cols-4">
-        <Metric label="Critical" value={report.summary.critical.toString()} tone="critical" />
-        <Metric label="Review" value={report.summary.review.toString()} tone="review" />
-        <Metric label="Watch" value={report.summary.watch.toString()} tone="watch" />
-        <Metric
-          label="Clean ops assets"
-          value={report.totals.clean_ops_assets.toString()}
-          tone="clean"
-        />
+        <Metric label="Critical" sub="ops & writeback drift" value={report.summary.critical.toString()} tone="critical" delay={0} />
+        <Metric label="Review" sub="needs a human" value={report.summary.review.toString()} tone="review" delay={60} />
+        <Metric label="Watch" sub="explainable difference" value={report.summary.watch.toString()} tone="watch" delay={120} />
+        <Metric label="Clean" sub="ops assets reconciled" value={report.totals.clean_ops_assets.toString()} tone="clean" delay={180} />
       </div>
 
-      <div className="rounded-md border border-gray-200 bg-white p-4 text-sm text-gray-600 shadow-sm">
-        Generated {formatDateTime(report.generated_at)} from{" "}
-        {report.totals.ops_assets} ops assets, {report.totals.facilities_rows}{" "}
-        facilities rows, and {report.totals.finance_rows} finance rows.
+      <div className="flex flex-wrap items-center justify-between gap-3 text-[12px] text-[var(--text-mute)]">
+        <span>
+          Generated <span className="font-mono text-[var(--text-dim)]">{formatDateTime(report.generated_at)}</span> from{" "}
+          <span className="font-mono text-[var(--text-dim)]">{report.totals.ops_assets}</span> ops,{" "}
+          <span className="font-mono text-[var(--text-dim)]">{report.totals.facilities_rows}</span> facilities, and{" "}
+          <span className="font-mono text-[var(--text-dim)]">{report.totals.finance_rows}</span> finance rows.
+        </span>
+        <span className="font-mono">{report.items.length} items</span>
       </div>
 
       <div className="space-y-3">
@@ -91,8 +105,9 @@ export function ReconcileView() {
           <ReconcileCard key={item.id} item={item} />
         ))}
         {!report.items.length ? (
-          <div className="rounded-md border border-emerald-200 bg-emerald-50 p-6 text-center text-sm font-semibold text-emerald-900">
-            No reconciliation issues found.
+          <div className="rounded-xl border border-emerald-300/25 bg-emerald-300/[0.04] p-8 text-center">
+            <div className="text-[15px] font-medium text-emerald-100">All three systems agree.</div>
+            <div className="mt-1 text-[12px] text-[var(--text-mute)]">Nothing here. Reset the API to repopulate drift cases.</div>
           </div>
         ) : null}
       </div>
@@ -102,98 +117,127 @@ export function ReconcileView() {
 
 function Metric({
   label,
+  sub,
   value,
   tone,
+  delay,
 }: {
   label: string;
+  sub: string;
   value: string;
   tone: ReconcileSeverity | "clean";
+  delay: number;
 }) {
-  const toneClass =
-    tone === "clean"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-950"
-      : SEVERITY_CLASS[tone];
+  const toneClass = tone === "clean" ? "tile-clean" : tone === "critical" ? "tile-critical" : tone === "review" ? "tile-review" : "";
+  const valueClass =
+    tone === "critical"
+      ? "text-rose-200"
+      : tone === "review"
+        ? "text-amber-200"
+        : tone === "watch"
+          ? "text-violet-200"
+          : "text-emerald-200";
+
   return (
-    <div className={`rounded-md border p-4 shadow-sm ${toneClass}`}>
-      <div className="text-xs font-semibold uppercase tracking-wide opacity-75">
-        {label}
-      </div>
-      <div className="mt-1 text-2xl font-semibold">{value}</div>
+    <div className={`tile animate-rise ${toneClass}`} style={{ animationDelay: `${delay}ms` }}>
+      <div className="text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--text-mute)]">{label}</div>
+      <div className={`mt-2 text-3xl font-medium tracking-tight tabular-nums ${valueClass}`}>{value}</div>
+      <div className="mt-1 text-[11px] text-[var(--text-mute)]">{sub}</div>
     </div>
   );
 }
 
 function ReconcileCard({ item }: { item: ReconcileItem }) {
   return (
-    <article
-      className={`rounded-md border p-4 shadow-sm ${SEVERITY_CLASS[item.severity]}`}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+    <article className={`rounded-xl border p-5 ${SEVERITY_RING[item.severity]}`}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md bg-white/70 px-2 py-1 text-xs font-semibold uppercase tracking-wide">
-              {item.severity}
+            <span
+              className={`rounded-full border px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider ${
+                item.severity === "critical"
+                  ? "border-rose-300/30 bg-rose-300/[0.08] text-rose-100"
+                  : item.severity === "review"
+                    ? "border-amber-300/30 bg-amber-300/[0.08] text-amber-100"
+                    : "border-violet-300/30 bg-violet-300/[0.08] text-violet-100"
+              }`}
+            >
+              {SEVERITY_LABEL[item.severity]}
             </span>
-            <span className="text-xs font-semibold uppercase tracking-wide opacity-75">
+            <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--text-mute)]">
               {item.category}
             </span>
           </div>
-          <h2 className="mt-2 text-lg font-semibold">{item.title}</h2>
-          <div className="mt-1 text-sm opacity-80">Owner: {item.owner}</div>
+          <h2 className={`mt-3 text-[17px] font-medium tracking-tight ${SEVERITY_TEXT[item.severity]}`}>
+            {item.title}
+          </h2>
+          <div className="mt-1 text-[12px] text-[var(--text-mute)]">Owner: {item.owner}</div>
         </div>
         <Link
           href={`/manager/assets/${item.tag}`}
-          className="rounded-md bg-white/80 px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm hover:bg-white"
+          className="inline-flex h-9 items-center rounded-lg border border-[var(--border-strong)] bg-white/[0.02] px-3 font-mono text-[13px] text-white transition hover:bg-white/[0.05]"
         >
-          {item.tag}
+          {item.tag} →
         </Link>
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
         <SystemBox
           title="Ops"
           rows={
             item.ops
               ? [
-                  ["State", item.ops.state],
-                  ["Custodian", item.ops.custodian],
-                  ["Location", locationLabel(item.ops.location)],
+                  ["state", item.ops.state],
+                  ["custodian", item.ops.custodian],
+                  ["location", locationLabel(item.ops.location)],
                 ]
-              : [["Status", "Missing"]]
+              : [["status", "missing"]]
           }
+          missing={!item.ops}
         />
         <SystemBox
           title="Facilities"
           rows={
             item.facilities
               ? [
-                  ["Rack", item.facilities.rack_location],
-                  ["Observed", formatDateTime(item.facilities.last_observed)],
+                  ["rack", item.facilities.rack_location],
+                  ["observed", formatDateTime(item.facilities.last_observed)],
                 ]
-              : [["Status", "Missing"]]
+              : [["status", "missing"]]
           }
+          missing={!item.facilities}
         />
         <SystemBox
           title="Finance"
           rows={
             item.finance
               ? [
-                  ["Status", item.finance.status],
-                  ["Site", item.finance.site],
-                  ["Book", formatMoney(item.finance.book_value_usd)],
+                  ["status", item.finance.status],
+                  ["site", item.finance.site],
+                  ["book value", formatMoney(item.finance.book_value_usd)],
                 ]
-              : [["Status", "Missing"]]
+              : [["status", "missing"]]
           }
+          missing={!item.finance}
         />
       </div>
 
-      <ul className="mt-4 space-y-1 text-sm">
-        {item.details.map((detail) => (
-          <li key={detail}>{detail}</li>
-        ))}
-      </ul>
-      <div className="mt-3 rounded-md bg-white/70 p-3 text-sm font-medium text-gray-950">
-        {item.recommendation}
+      {item.details.length ? (
+        <ul className="mt-5 divide-y divide-[var(--border)] border-y hairline">
+          {item.details.map((detail) => (
+            <li key={detail} className="flex items-start gap-3 py-2.5 font-mono text-[12.5px] text-[var(--text-dim)]">
+              <span className="text-[var(--text-mute)]">›</span>
+              {detail}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <div className="mt-5 rounded-lg border hairline bg-white/[0.02] p-3.5">
+        <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--text-mute)]">
+          Recommendation
+        </div>
+        <div className="mt-1 text-[13.5px] text-white">{item.recommendation}</div>
       </div>
     </article>
   );
@@ -202,20 +246,29 @@ function ReconcileCard({ item }: { item: ReconcileItem }) {
 function SystemBox({
   title,
   rows,
+  missing,
 }: {
   title: string;
   rows: Array<[string, string]>;
+  missing?: boolean;
 }) {
   return (
-    <div className="rounded-md bg-white/75 p-3 text-gray-950 ring-1 ring-inset ring-black/10">
-      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-        {title}
+    <div className={`rounded-lg border hairline p-3.5 ${missing ? "bg-rose-300/[0.03]" : "bg-white/[0.015]"}`}>
+      <div className="flex items-center justify-between">
+        <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--text-mute)]">
+          {title}
+        </div>
+        {missing ? (
+          <span className="rounded-full border border-rose-300/25 bg-rose-300/[0.06] px-2 py-0.5 text-[10px] text-rose-200">
+            missing
+          </span>
+        ) : null}
       </div>
-      <dl className="mt-2 space-y-2 text-sm">
+      <dl className="mt-3 space-y-2">
         {rows.map(([label, value]) => (
           <div key={label}>
-            <dt className="text-xs font-medium text-gray-500">{label}</dt>
-            <dd className="break-words font-semibold">{value}</dd>
+            <dt className="text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--text-mute)]">{label}</dt>
+            <dd className={`mt-0.5 break-words text-[13px] ${missing ? "text-rose-100" : "text-white"}`}>{value}</dd>
           </div>
         ))}
       </dl>

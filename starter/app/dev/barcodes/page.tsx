@@ -1,85 +1,110 @@
 import Link from "next/link";
 import { code128Svg } from "@/lib/code128";
 
-const CODES = [
-  { label: "Fresh demo asset", value: "C0009001", group: "Assets" },
-  { label: "Second demo asset", value: "C0009002", group: "Assets" },
-  { label: "Seeded in-service", value: "C0000101", group: "Assets" },
+type Code = {
+  label: string;
+  value: string;
+  group: "Assets" | "Locations" | "Badges";
+  note?: string;
+};
+
+const CODES: Code[] = [
+  // Assets — cover the interesting cases per the brief
+  { label: "Fresh demo (unreceived)", value: "C0009001", group: "Assets", note: "Receive flow happy path" },
+  { label: "Second demo", value: "C0009002", group: "Assets" },
+  { label: "Seeded in-service", value: "C0000101", group: "Assets", note: "Already deployed — Store flow de-racks" },
   { label: "Seeded stored", value: "C0000104", group: "Assets" },
-  { label: "RMA drift sample", value: "C0000108", group: "Assets" },
-  { label: "Rack mismatch sample", value: "C0000110", group: "Assets" },
-  {
-    label: "Receiving dock",
-    value: "Lab-Building-A/Receiving/DOCK-1",
-    group: "Locations",
-  },
-  {
-    label: "Storage shelf",
-    value: "Lab-Building-A/Storage-1/SHELF-3",
-    group: "Locations",
-  },
-  {
-    label: "Deploy rack",
-    value: "Lab-Building-A/Bay-12/Aisle-3/B-04/U21",
-    group: "Locations",
-  },
-  {
-    label: "Deploy missing RU",
-    value: "Lab-Building-A/Bay-12/Aisle-3/B-04",
-    group: "Locations",
-  },
-  { label: "Receiver Mike", value: "tech-mike", group: "Badges" },
-  { label: "Receiver Ana", value: "tech-ana", group: "Badges" },
+  { label: "Drifted (RMA mismatch)", value: "C0000108", group: "Assets", note: "Appears in reconcile as review" },
+  { label: "Drifted (rack mismatch)", value: "C0000110", group: "Assets", note: "Appears in reconcile as critical" },
+  { label: "Disposed (rejected transitions)", value: "C0000150", group: "Assets", note: "All scans rejected with invalid_transition" },
+  { label: "Ghost (in finance, no ops)", value: "C9999001", group: "Assets", note: "Unknown to ops — receive returns 404" },
+  // Locations — receiving, storage, deploy with + without RU
+  { label: "Receiving dock", value: "Lab-Building-A/Receiving/DOCK-1", group: "Locations" },
+  { label: "Storage shelf", value: "Lab-Building-A/Storage-1/SHELF-3", group: "Locations" },
+  { label: "Deploy rack (complete)", value: "Lab-Building-A/Bay-12/Aisle-3/B-04/U21", group: "Locations" },
+  { label: "Deploy missing RU", value: "Lab-Building-A/Bay-12/Aisle-3/B-04", group: "Locations", note: "Triggers incomplete_deploy_location" },
+  // Badges
+  { label: "Receiver — Mike", value: "tech-mike", group: "Badges" },
+  { label: "Receiver — Ana", value: "tech-ana", group: "Badges" },
+  { label: "Receiver — Paul (manager)", value: "manager-paul", group: "Badges" },
 ];
 
+const GROUPS: Code["group"][] = ["Assets", "Locations", "Badges"];
+
 export default function BarcodePage() {
-  const groups = Array.from(new Set(CODES.map((code) => code.group)));
-
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3 print:hidden">
+    <div className="space-y-8 py-6 print:py-0">
+      <header className="flex flex-wrap items-end justify-between gap-4 print:hidden">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            Dev
+          <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
+            Dev tools
           </p>
-          <h1 className="mt-1 text-2xl font-semibold text-gray-950">
-            Barcode sheet
-          </h1>
+          <h1 className="display mt-3 text-3xl sm:text-4xl">Test barcode sheet</h1>
+          <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[var(--text-dim)]">
+            Code 128 barcodes for the cases reviewers will exercise — happy path, drift, ghosts, disposed, and a deploy without an RU. Print to paper or scan from a second screen.
+          </p>
         </div>
-        <Link
-          href="/tech"
-          className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm hover:bg-gray-50"
-        >
-          Tech console
-        </Link>
-      </div>
+        <div className="flex gap-2">
+          <Link
+            href="/tech"
+            className="inline-flex h-9 items-center rounded-lg border border-[var(--border-strong)] bg-white/[0.02] px-3 text-[13px] text-[var(--text-dim)] transition hover:bg-white/[0.05] hover:text-white"
+          >
+            ← Tech console
+          </Link>
+          <PrintButton />
+        </div>
+      </header>
 
-      {groups.map((group) => (
-        <section key={group} className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-            {group}
-          </h2>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {CODES.filter((code) => code.group === group).map((code) => (
-              <article
-                key={code.value}
-                className="break-inside-avoid rounded-md border border-gray-200 bg-white p-4 shadow-sm"
-              >
-                <div className="text-sm font-semibold text-gray-950">
-                  {code.label}
-                </div>
-                <div className="mt-1 break-words font-mono text-xs text-gray-500">
-                  {code.value}
-                </div>
-                <div
-                  className="mt-3 w-full overflow-hidden rounded bg-white"
-                  dangerouslySetInnerHTML={{ __html: code128Svg(code.value) }}
-                />
-              </article>
-            ))}
-          </div>
-        </section>
-      ))}
+      {GROUPS.map((group) => {
+        const items = CODES.filter((c) => c.group === group);
+        return (
+          <section key={group} className="space-y-4">
+            <div className="flex items-baseline justify-between border-b hairline pb-2 print:border-gray-200">
+              <h2 className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)] print:text-gray-700">
+                {group}
+              </h2>
+              <span className="font-mono text-[11px] text-[var(--text-mute)] print:text-gray-500">
+                {items.length} codes
+              </span>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {items.map((code) => (
+                <article
+                  key={code.value}
+                  className="break-inside-avoid rounded-xl border hairline bg-white p-4 text-gray-900 print:border-gray-200 print:shadow-none"
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div className="text-[13px] font-semibold text-gray-950">{code.label}</div>
+                  </div>
+                  <div className="mt-1 break-words font-mono text-[11px] text-gray-500">
+                    {code.value}
+                  </div>
+                  <div
+                    className="mt-3 w-full overflow-hidden bg-white"
+                    dangerouslySetInnerHTML={{ __html: code128Svg(code.value) }}
+                  />
+                  {code.note ? (
+                    <div className="mt-2 text-[11px] leading-snug text-gray-500 print:text-gray-700">
+                      {code.note}
+                    </div>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
+  );
+}
+
+function PrintButton() {
+  return (
+    <a
+      href="javascript:window.print()"
+      className="inline-flex h-9 items-center rounded-lg bg-white px-3 text-[13px] font-medium text-[#0a0a0a] transition hover:bg-white/90"
+    >
+      Print sheet
+    </a>
   );
 }

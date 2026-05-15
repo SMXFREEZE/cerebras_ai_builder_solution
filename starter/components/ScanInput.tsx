@@ -12,7 +12,7 @@ export interface ScanInputProps {
 
 export function ScanInput({
   onScan,
-  placeholder = "Scan or type a tag and press Enter...",
+  placeholder = "Scan or type a tag and press Enter",
   autoFocus = true,
   disabled = false,
   label,
@@ -24,6 +24,19 @@ export function ScanInput({
       ref.current.focus();
     }
   }, [autoFocus, disabled]);
+
+  // Keep focus on the scanner input — if the tech taps elsewhere, refocus on next keystroke.
+  useEffect(() => {
+    if (disabled) return;
+    const refocus = () => {
+      const active = document.activeElement;
+      if (active && active.tagName === "INPUT") return;
+      if (active && active.tagName === "BUTTON") return;
+      ref.current?.focus();
+    };
+    window.addEventListener("keydown", refocus);
+    return () => window.removeEventListener("keydown", refocus);
+  }, [disabled]);
 
   function fire(): void {
     const el = ref.current;
@@ -38,7 +51,7 @@ export function ScanInput({
   return (
     <label className="block">
       {label ? (
-        <span className="mb-2 block text-sm font-medium text-gray-700">
+        <span className="mb-2 block text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
           {label}
         </span>
       ) : null}
@@ -51,7 +64,7 @@ export function ScanInput({
         spellCheck={false}
         disabled={disabled}
         placeholder={placeholder}
-        className="w-full rounded-md border-2 border-gray-300 p-4 text-lg focus:border-blue-600 focus:outline-none disabled:bg-gray-100"
+        className="scan-input w-full"
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();

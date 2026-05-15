@@ -5,60 +5,76 @@ const WORKFLOWS = [
     href: "/tech/receive",
     title: "Receive",
     meta: "Dock",
-    tone: "border-sky-200 bg-sky-50",
+    body: "Inbound scan. Locks the tag to RECEIVED and validates against the PO.",
+    n: "01",
   },
   {
     href: "/tech/store",
     title: "Store",
     meta: "Inventory",
-    tone: "border-amber-200 bg-amber-50",
+    body: "Move from dock to shelf. Facilities row updated; no finance write yet.",
+    n: "02",
   },
   {
     href: "/tech/deploy",
     title: "Deploy",
     meta: "Rack",
-    tone: "border-emerald-200 bg-emerald-50",
+    body: "Install into a rack. The only event that capitalizes the asset in finance.",
+    n: "03",
   },
   {
     href: "/tech/transfer",
     title: "Transfer",
     meta: "Custody",
-    tone: "border-violet-200 bg-violet-50",
+    body: "Move custody between technicians. Ops record only — facilities and finance untouched.",
+    n: "04",
   },
 ];
 
 export default function TechLandingPage() {
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
-      <div className="flex items-start justify-between gap-4">
+    <div className="mx-auto max-w-4xl space-y-10 py-8">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
             Technician
           </p>
-          <h1 className="mt-1 text-2xl font-semibold text-gray-950">
-            Scan console
-          </h1>
+          <h1 className="display mt-3 text-3xl sm:text-4xl">Scan console</h1>
+          <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-[var(--text-dim)]">
+            Pick a flow. Each scan writes only the records that should change, then emits an audit event.
+          </p>
         </div>
         <Link
           href="/dev/barcodes"
-          className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+          className="inline-flex h-10 items-center rounded-lg border border-[var(--border-strong)] bg-white/[0.02] px-4 text-sm text-white transition hover:bg-white/[0.05]"
         >
-          Barcodes
+          Print test barcodes →
         </Link>
-      </div>
+      </header>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {WORKFLOWS.map((workflow) => (
+      <div className="grid gap-px overflow-hidden rounded-2xl border hairline bg-[var(--border)] sm:grid-cols-2">
+        {WORKFLOWS.map((w, i) => (
           <Link
-            key={workflow.href}
-            href={workflow.href}
-            className={`min-h-[128px] rounded-md border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${workflow.tone}`}
+            key={w.href}
+            href={w.href}
+            className="card-sweep relative block bg-[#0a0a0a] p-7 animate-rise"
+            style={{ animationDelay: `${i * 60}ms` }}
           >
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-              {workflow.meta}
-            </div>
-            <div className="mt-3 text-2xl font-semibold text-gray-950">
-              {workflow.title}
+            <div className="relative z-10">
+              <div className="flex items-baseline justify-between">
+                <span className="font-mono text-[11px] text-[var(--text-mute)]">{w.n}</span>
+                <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--text-mute)]">
+                  {w.meta}
+                </span>
+              </div>
+              <h2 className="display mt-6 text-3xl text-white">{w.title}</h2>
+              <p className="mt-3 max-w-sm text-[13.5px] leading-relaxed text-[var(--text-dim)]">
+                {w.body}
+              </p>
+              <div className="mt-7 inline-flex items-center text-[12px] text-[var(--text-mute)]">
+                Open
+                <span className="ml-1.5 transition-transform">→</span>
+              </div>
             </div>
           </Link>
         ))}

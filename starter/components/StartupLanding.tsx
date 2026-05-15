@@ -1,736 +1,481 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion, useScroll, useTransform } from "framer-motion";
-import type { MotionValue } from "framer-motion";
-import gsap from "gsap";
+import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 
-const scanEvents = [
-  {
-    tag: "C0009001",
-    action: "Receive",
-    location: "Dock 1",
-    result: "Ops asset created",
-  },
-  {
-    tag: "C0009001",
-    action: "Store",
-    location: "Storage-1 / Shelf-3",
-    result: "Inventory placement verified",
-  },
-  {
-    tag: "C0009001",
-    action: "Deploy",
-    location: "Bay-12 / Rack B-04 / U21",
-    result: "Facilities + finance updated",
-  },
-  {
-    tag: "C0009001",
-    action: "Transfer",
-    location: "tech-mike -> tech-ana",
-    result: "Custody event recorded",
-  },
+const HeroScene = dynamic(() => import("./HeroScene").then((m) => m.HeroScene), {
+  ssr: false,
+  loading: () => <div className="h-[420px] w-full lg:h-[520px]" />,
+});
+
+const events = [
+  { ts: "14:02:11", tag: "C0009001", action: "receive",  loc: "DOCK-1",              by: "tech-mike" },
+  { ts: "14:02:47", tag: "C0009001", action: "store",    loc: "STG-1 / SHELF-3",     by: "tech-mike" },
+  { ts: "14:08:03", tag: "C0009001", action: "deploy",   loc: "BAY-12 / B-04 / U21", by: "tech-mike" },
+  { ts: "14:14:55", tag: "C0009001", action: "transfer", loc: "tech-mike → tech-ana", by: "tech-mike" },
+  { ts: "14:18:22", tag: "C0009104", action: "store",    loc: "STG-2 / SHELF-1",     by: "tech-ana" },
+  { ts: "14:21:09", tag: "C0009108", action: "review",   loc: "finance mismatch",    by: "system" },
+  { ts: "14:24:41", tag: "C0009114", action: "receive",  loc: "DOCK-2",              by: "tech-ray" },
+  { ts: "14:26:02", tag: "C0009114", action: "store",    loc: "STG-3 / SHELF-2",     by: "tech-ray" },
 ];
 
-const floatingAssets = [
-  { tag: "C0000101", state: "in service", owner: "tech-ana", delay: 0 },
-  { tag: "C0000104", state: "stored", owner: "inventory", delay: 0.4 },
-  { tag: "C0000108", state: "review", owner: "manager", delay: 0.8 },
+const rows = [
+  ["C0000101", "in_service",  "BAY-12 / B-04 / U21", "tech-ana",  "clean"],
+  ["C0000104", "stored",      "STG-1 / SHELF-3",     "inventory", "clean"],
+  ["C0000108", "rma_pending", "finance mismatch",    "manager",   "review"],
+  ["C0000110", "received",    "rack mismatch",       "tech-mike", "critical"],
+  ["C0000114", "in_service",  "BAY-08 / A-02 / U14", "tech-ray",  "clean"],
+  ["C0000119", "stored",      "STG-2 / SHELF-1",     "inventory", "clean"],
+  ["C0000122", "in_service",  "BAY-04 / C-01 / U07", "tech-mike", "clean"],
+  ["C0000128", "deploy_pend", "BAY-12 / B-05 / U03", "tech-ana",  "review"],
 ];
 
-const dashboardRows = [
-  ["C0000101", "In service", "Rack B-04 / U21", "clean"],
-  ["C0000104", "Stored", "Shelf-3", "clean"],
-  ["C0000108", "RMA pending", "Finance mismatch", "review"],
-  ["C0000110", "Received", "Rack mismatch", "critical"],
-];
-
-const workflowLinks = [
+const workflows = [
   {
-    href: "/tech/receive",
-    title: "Technician scan workflow",
-    copy: "Receive, store, deploy, and transfer assets with keyboard scanner speed and optional camera capture.",
+    n: "01",
+    title: "Receive",
+    body: "Scan at the dock. The system creates an ops record, validates against the PO, and locks the tag to inbound state.",
+    bullets: ["PO line matched", "Tag locked to RECEIVED", "Dock + custodian recorded"],
   },
   {
-    href: "/manager",
-    title: "Manager dashboard",
-    copy: "Filter the live asset estate by state, site, custodian, model, and exception status.",
+    n: "02",
+    title: "Store",
+    body: "Move from dock to shelf. Placement is written to the facilities system in the same scan event.",
+    bullets: ["Storage path validated", "Facilities row updated", "No finance write yet"],
   },
   {
-    href: "/manager/reconcile",
-    title: "Reconciliation view",
-    copy: "Compare operations, facilities, and finance records before gaps become manufacturing blockers.",
+    n: "03",
+    title: "Deploy",
+    body: "Install into a rack. This is the only event that capitalizes the asset in finance — three writes, one transaction.",
+    bullets: ["Ops: in_service", "Facilities: rack assigned", "Finance: capitalized"],
   },
   {
-    href: "/manager/assets/C0000101",
-    title: "Asset detail page",
-    copy: "Drill into placement, procurement context, custody, and full event history for one asset.",
+    n: "04",
+    title: "Transfer",
+    body: "Move custody between technicians. The ops record updates; facilities and finance are left alone.",
+    bullets: ["Custody chain extended", "Audit event written", "Idempotent on replay"],
   },
 ];
-
-const storySections = [
-  {
-    title: "Scan at the edge",
-    copy: "Technicians move as fast as the line. Every scan is short, resilient, and built around the hardware path they already use.",
-    metric: "4",
-    label: "core scan flows",
-  },
-  {
-    title: "Write to the systems that matter",
-    copy: "Deployments bridge ops, facilities, and finance only when the asset is truly in service, keeping the handoff auditable.",
-    metric: "3",
-    label: "systems reconciled",
-  },
-  {
-    title: "Give managers the truth fast",
-    copy: "The control tower surfaces critical mismatches first, then gives the detail and audit trail needed to resolve them.",
-    metric: "0",
-    label: "guesswork required",
-  },
-];
-
-const auditEvents = [
-  "Receive scan accepted at Dock 1",
-  "Stored in Lab-Building-A / Storage-1",
-  "Deployed to Bay-12 / B-04 / U21",
-  "Facilities rack record written",
-  "Finance capitalization written",
-  "Custody transferred to tech-ana",
-];
-
-type ScanEvent = (typeof scanEvents)[number];
-
-function AmbientLines() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (!canvas || !ctx || reduceMotion.matches) return;
-
-    const canvasEl = canvas;
-    const context = ctx;
-    const particleCount = window.innerWidth < 720 ? 34 : 64;
-    const maxDistance = window.innerWidth < 720 ? 118 : 158;
-    let width = 0;
-    let height = 0;
-    let animationId = 0;
-
-    type Particle = {
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      r: number;
-    };
-
-    let particles: Particle[] = [];
-
-    function resize() {
-      const ratio = Math.min(window.devicePixelRatio || 1, 2);
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvasEl.width = Math.floor(width * ratio);
-      canvasEl.height = Math.floor(height * ratio);
-      canvasEl.style.width = `${width}px`;
-      canvasEl.style.height = `${height}px`;
-      context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    }
-
-    function createParticle(): Particle {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 0.12 + Math.random() * 0.22;
-      return {
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        r: 0.7 + Math.random() * 1.2,
-      };
-    }
-
-    function init() {
-      resize();
-      particles = Array.from({ length: particleCount }, createParticle);
-    }
-
-    function step() {
-      context.clearRect(0, 0, width, height);
-
-      for (const particle of particles) {
-        particle.x += particle.vx;
-        particle.y += particle.vy;
-        if (particle.x < 0 || particle.x > width) particle.vx *= -1;
-        if (particle.y < 0 || particle.y > height) particle.vy *= -1;
-      }
-
-      for (let i = 0; i < particles.length; i += 1) {
-        for (let j = i + 1; j < particles.length; j += 1) {
-          const a = particles[i]!;
-          const b = particles[j]!;
-          const dx = a.x - b.x;
-          const dy = a.y - b.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          if (distance > maxDistance) continue;
-          const alpha = (1 - distance / maxDistance) * 0.13;
-          context.beginPath();
-          context.moveTo(a.x, a.y);
-          context.lineTo(b.x, b.y);
-          context.strokeStyle = `rgba(125, 211, 252, ${alpha})`;
-          context.lineWidth = 0.65;
-          context.stroke();
-        }
-      }
-
-      for (const particle of particles) {
-        context.beginPath();
-        context.arc(particle.x, particle.y, particle.r, 0, Math.PI * 2);
-        context.fillStyle = "rgba(165, 243, 252, 0.22)";
-        context.fill();
-      }
-
-      animationId = window.requestAnimationFrame(step);
-    }
-
-    init();
-    step();
-
-    window.addEventListener("resize", init);
-    return () => {
-      window.cancelAnimationFrame(animationId);
-      window.removeEventListener("resize", init);
-    };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-0 opacity-60"
-    />
-  );
-}
 
 export function StartupLanding() {
-  const [scanIndex, setScanIndex] = useState(0);
-  const heroRef = useRef<HTMLDivElement>(null);
-  const headlineRef = useRef<HTMLHeadingElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-  const heroLift = useTransform(scrollYProgress, [0, 1], [0, 90]);
-  const cloudShift = useTransform(scrollYProgress, [0, 1], [0, -70]);
-
-  const headlineWords = useMemo(
-    () => "Manufacturing assets, tracked at line speed.".split(" "),
-    [],
-  );
-  const activeScan = scanEvents[scanIndex % scanEvents.length] ?? scanEvents[0]!;
-
+  const [tick, setTick] = useState(0);
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      setScanIndex((current) => current + 1);
-    }, 1850);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!headlineRef.current) return;
-    const words = headlineRef.current.querySelectorAll("[data-gsap-word]");
-    gsap.fromTo(
-      words,
-      { autoAlpha: 0, y: 18, filter: "blur(2px)" },
-      {
-        autoAlpha: 1,
-        y: 0,
-        filter: "blur(0px)",
-        duration: 0.52,
-        ease: "power3.out",
-        stagger: 0.035,
-      },
-    );
+    const t = window.setInterval(() => setTick((c) => c + 1), 1600);
+    return () => window.clearInterval(t);
   }, []);
 
   return (
-    <div className="relative mx-[calc(50%-50vw)] -my-6 min-h-screen w-screen max-w-[100vw] overflow-hidden bg-[#05070d] text-white">
-      <AmbientLines />
-      <motion.div
-        aria-hidden="true"
-        style={{ y: cloudShift }}
-        className="premium-cloud pointer-events-none absolute inset-x-0 top-0 h-[820px]"
-      />
-      <div aria-hidden="true" className="premium-grid pointer-events-none absolute inset-0" />
-      <div aria-hidden="true" className="grain-overlay pointer-events-none absolute inset-0" />
-      <HeroSection
-        refTarget={heroRef}
-        headlineRef={headlineRef}
-        headlineWords={headlineWords}
-        heroLift={heroLift}
-        activeScan={activeScan}
-      />
-      <ProductStrip />
-      <StorySections />
-      <DashboardSection />
-      <WorkflowSection />
-      <FinalCta />
+    <div className="relative mx-[calc(50%-50vw)] -my-6 w-screen max-w-[100vw] overflow-hidden bg-[#0a0a0a] text-[var(--text)]">
+      <Hero />
+      <LiveBoard tick={tick} />
+      <WorkflowsPinned />
+      <Reconcile />
+      <Estate />
+      <Cta />
+      <Foot />
     </div>
   );
 }
 
-function HeroSection({
-  refTarget,
-  headlineRef,
-  headlineWords,
-  heroLift,
-  activeScan,
-}: {
-  refTarget: React.RefObject<HTMLDivElement | null>;
-  headlineRef: React.RefObject<HTMLHeadingElement | null>;
-  headlineWords: string[];
-  heroLift: MotionValue<number>;
-  activeScan: ScanEvent;
-}) {
+function Hero() {
   return (
-    <section
-      ref={refTarget}
-      className="relative z-10 flex min-h-[760px] w-full items-center px-4 py-16 sm:px-8 lg:min-h-[760px] lg:px-12"
-    >
-      <div aria-hidden="true" className="hero-glow" />
-      <div className="mx-auto grid w-full min-w-0 max-w-7xl items-center gap-12 lg:grid-cols-[minmax(0,1fr)_560px]">
-        <motion.div
-          style={{ y: heroLift }}
-          initial={{ opacity: 0, y: 22 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-          className="w-full min-w-0 max-w-[calc(100vw-2rem)] sm:max-w-3xl"
-        >
-          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs font-medium text-white/55 backdrop-blur">
-            <span className="h-1.5 w-1.5 rounded-full bg-cyan-200 shadow-[0_0_16px_rgba(103,232,249,0.9)]" />
-            Manufacturing command surface
+    <section className="border-b hairline">
+      <div className="mx-auto grid max-w-6xl gap-12 px-6 py-24 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:py-28">
+        <div className="max-w-2xl">
+          <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)] animate-rise">
+            ops · facilities · finance — one event stream
           </div>
-          <h1
-            ref={headlineRef}
-            aria-label="Manufacturing assets, tracked at line speed."
-            className="heading-display flex max-w-[calc(100vw-2rem)] flex-wrap gap-x-[0.18em] gap-y-1 text-3xl text-white sm:max-w-4xl sm:text-6xl lg:text-7xl"
-          >
-            {headlineWords.map((word) => (
-              <span
-                key={word}
-                aria-hidden="true"
-                data-gsap-word
-                className={`inline-block will-change-transform ${
-                  word === "line" || word === "speed." ? "text-gradient" : ""
-                }`}
-              >
-                {word}
-              </span>
-            ))}
+          <h1 className="display mt-7 text-4xl sm:text-5xl lg:text-[68px] animate-rise" style={{ animationDelay: "60ms" }}>
+            Asset records that match what's on the floor.
           </h1>
-          <p className="mt-7 max-w-[calc(100vw-2rem)] text-lg leading-8 text-slate-300 sm:max-w-2xl sm:text-xl">
-            A premium command layer for Cerebras manufacturing teams: scan assets
-            in seconds, reconcile ops with facilities and finance, and turn every
-            movement into an audit-ready event.
+          <p
+            className="mt-7 max-w-xl text-[15px] leading-relaxed text-[var(--text-dim)] sm:text-base animate-rise"
+            style={{ animationDelay: "120ms" }}
+          >
+            AssetOps reconciles operations, facilities, and finance against the same scan event. No more weekly spreadsheet sweeps. No more deploying gear that finance hasn't capitalized.
           </p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+
+          <div
+            className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 text-[14px] animate-rise"
+            style={{ animationDelay: "180ms" }}
+          >
             <Link
               href="/tech/receive"
-              className="btn-inset inline-flex min-h-[48px] items-center justify-center rounded-xl bg-white px-5 text-sm font-semibold text-slate-950 shadow-[0_0_40px_rgba(255,255,255,0.16)] transition hover:-translate-y-0.5 hover:bg-cyan-100"
+              className="text-white underline decoration-white/30 underline-offset-[6px] hover:decoration-white"
             >
               Start scan workflow
             </Link>
-            <Link
-              href="/manager"
-              className="btn-inset inline-flex min-h-[48px] items-center justify-center rounded-xl border border-white/15 bg-white/5 px-5 text-sm font-semibold text-white backdrop-blur transition hover:-translate-y-0.5 hover:border-cyan-300/50 hover:bg-cyan-300/10"
-            >
-              Open control tower
+            <Link href="/manager" className="text-[var(--text-dim)] hover:text-white transition">
+              Manager dashboard →
             </Link>
           </div>
-          <div className="mt-10 hidden max-w-2xl gap-3 sm:grid sm:grid-cols-3">
-            <HeroMetric value="4" label="scan flows" />
-            <HeroMetric value="3-way" label="reconciliation" />
-            <HeroMetric value="audit" label="every movement" />
-          </div>
-        </motion.div>
-        <HeroConsole activeScan={activeScan} />
+
+          <dl
+            className="mt-14 grid max-w-md grid-cols-3 gap-6 border-t hairline pt-7 animate-rise"
+            style={{ animationDelay: "240ms" }}
+          >
+            <CountStat to={4} suffix="" l="scan flows" />
+            <Stat n="3-way" l="reconciliation" />
+            <CountStat to={100} suffix="%" l="audit coverage" />
+          </dl>
+        </div>
+
+        <div className="relative animate-fade" style={{ animationDelay: "300ms" }}>
+          <HeroScene />
+        </div>
       </div>
     </section>
   );
 }
 
-function HeroMetric({ value, label }: { value: string; label: string }) {
+function Stat({ n, l }: { n: string; l: string }) {
   return (
-    <div className="premium-glass stat-shimmer rounded-xl p-4">
-      <div className="text-2xl font-semibold text-white">{value}</div>
-      <div className="mt-1 text-sm text-slate-400">{label}</div>
+    <div>
+      <div className="text-2xl font-medium tracking-tight text-white">{n}</div>
+      <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-[var(--text-mute)]">{l}</div>
     </div>
   );
 }
 
-function HeroConsole({ activeScan }: { activeScan: ScanEvent }) {
+function CountStat({ to, suffix, l }: { to: number; suffix: string; l: string }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const start = performance.now();
+    const dur = 1100;
+    let raf = 0;
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / dur);
+      // easeOutCubic
+      const eased = 1 - Math.pow(1 - p, 3);
+      setN(Math.round(to * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [to]);
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 28, rotateX: 6 }}
-      animate={{ opacity: 1, y: 0, rotateX: 0 }}
-      transition={{ delay: 0.15, duration: 0.8, ease: "easeOut" }}
-      className="relative mx-auto w-full min-w-0 max-w-[calc(100vw-2rem)] sm:max-w-[560px]"
-    >
-      <div className="absolute -inset-6 rounded-[2rem] bg-cyan-400/10 blur-3xl" />
-      <div className="premium-glass stat-shimmer relative overflow-hidden rounded-2xl p-4 shadow-2xl shadow-cyan-950/40">
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
-          <div>
-            <div className="text-sm font-semibold text-white">AssetOps live</div>
-            <div className="mt-1 text-xs text-slate-400">Sunnyvale factory floor</div>
-          </div>
-          <div className="flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-200">
-            <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,0.9)]" />
-            synced
-          </div>
-        </div>
-
-        <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_0.75fr]">
-          <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <div className="relative min-h-[216px] overflow-hidden rounded-lg border border-white/10 bg-[#050b13] p-4">
-              <div className="scan-beam absolute inset-x-4 top-5 h-px bg-cyan-200" />
-              <div className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200">
-                live scan
-              </div>
-              <div className="mt-8 font-mono text-3xl font-semibold tracking-normal text-white">
-                {activeScan.tag}
-              </div>
-              <div className="mt-4 grid gap-3 text-sm">
-                <ScanLine label="Action" value={activeScan.action} />
-                <ScanLine label="Location" value={activeScan.location} />
-                <ScanLine label="Result" value={activeScan.result} />
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {floatingAssets.map((asset) => (
-              <motion.div
-                key={asset.tag}
-                animate={{ y: [-4, 6, -4] }}
-                transition={{
-                  duration: 4.4,
-                  delay: asset.delay,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="premium-glass rounded-xl p-3"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-mono text-sm font-semibold text-white">
-                    {asset.tag}
-                  </span>
-                  <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-cyan-100">
-                    {asset.state}
-                  </span>
-                </div>
-                <div className="mt-2 text-xs text-slate-400">{asset.owner}</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
+    <div>
+      <div className="text-2xl font-medium tracking-tight text-white tabular-nums">
+        {n}
+        {suffix}
       </div>
-    </motion.div>
-  );
-}
-
-function ScanLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-start justify-between gap-4 rounded-md bg-white/[0.04] px-3 py-2">
-      <span className="text-slate-500">{label}</span>
-      <span className="text-right font-medium text-slate-100">{value}</span>
+      <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-[var(--text-mute)]">{l}</div>
     </div>
   );
 }
 
-function ProductStrip() {
-  return (
-    <section className="relative z-10 border-y border-white/10 bg-black/30 px-4 py-5 backdrop-blur-md sm:px-8 lg:px-12">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-slate-300 md:flex-row md:items-center md:justify-between">
-        <span className="font-semibold text-white">Built for the challenge surface</span>
-        <div className="flex flex-wrap gap-3">
-          {["Technician scans", "Manager dashboard", "Reconciliation", "Audit trail"].map(
-            (item) => (
-              <span
-                key={item}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 transition hover:border-cyan-200/30 hover:text-white"
-              >
-                {item}
-              </span>
-            ),
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
+function Console({ tick }: { tick: number }) {
+  const window_ = 6;
+  const start = tick % Math.max(1, events.length - window_ + 1);
+  const visible = events.slice(start, start + window_);
 
-function StorySections() {
   return (
-    <section id="story" className="relative z-10 px-4 py-24 sm:px-8 lg:px-12">
-      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.85fr_1.15fr]">
-        <div className="lg:sticky lg:top-24 lg:h-fit">
-          <Reveal>
-            <h2 className="max-w-xl text-4xl font-semibold leading-tight text-white sm:text-5xl">
-              The factory floor gets a system of record that can keep up.
-            </h2>
-            <p className="mt-5 text-lg leading-8 text-slate-400">
-              The product story stays simple: scan where work happens, write only
-              the records that should change, and give leaders a command view of
-              exceptions before they slow down manufacturing.
-            </p>
-          </Reveal>
-        </div>
-        <div className="space-y-5">
-          {storySections.map((section, index) => (
-            <Reveal key={section.title} delay={index * 0.08}>
-              <article className="premium-glass stat-shimmer min-h-[280px] rounded-2xl p-6 shadow-2xl shadow-black/20">
-                <div className="flex items-start justify-between gap-6">
-                  <div>
-                    <h3 className="text-2xl font-semibold text-white">{section.title}</h3>
-                    <p className="mt-4 max-w-xl text-base leading-7 text-slate-400">
-                      {section.copy}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <div className="text-4xl font-semibold text-cyan-200">
-                      {section.metric}
-                    </div>
-                    <div className="mt-1 max-w-24 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {section.label}
-                    </div>
-                  </div>
-                </div>
-              </article>
-            </Reveal>
-          ))}
-        </div>
+    <div className="border hairline">
+      <div className="flex items-center justify-between border-b hairline px-3 py-2 text-[11px] font-mono text-[var(--text-mute)]">
+        <span>events.log</span>
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          sunnyvale-fab-2
+        </span>
       </div>
-    </section>
-  );
-}
-
-function DashboardSection() {
-  return (
-    <section id="dashboard" className="relative z-10 px-4 py-24 sm:px-8 lg:px-12">
-      <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-        <Reveal>
-          <DashboardPreview />
-        </Reveal>
-        <Reveal delay={0.08}>
-          <div className="max-w-xl">
-            <h2 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
-              A control tower that sells the product in one glance.
-            </h2>
-            <p className="mt-5 text-lg leading-8 text-slate-400">
-              The manager view prioritizes action: critical mismatches, review
-              queue, clean assets, filtered table, and direct drill-down to
-              asset detail. It looks polished, but it is still the real challenge
-              app underneath.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/manager"
-                className="btn-inset inline-flex min-h-[48px] items-center justify-center rounded-xl bg-cyan-200 px-5 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-white"
-              >
-                View dashboard
-              </Link>
-              <Link
-                href="/manager/reconcile"
-                className="btn-inset inline-flex min-h-[48px] items-center justify-center rounded-xl border border-white/15 bg-white/5 px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
-              >
-                Open reconciliation
-              </Link>
-            </div>
-          </div>
-        </Reveal>
+      <div className="grid grid-cols-[68px_82px_70px_1fr] gap-2 border-b hairline px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-[var(--text-mute)]">
+        <span>time</span>
+        <span>tag</span>
+        <span>action</span>
+        <span>where</span>
       </div>
-    </section>
-  );
-}
-
-function DashboardPreview() {
-  return (
-    <div className="premium-glass stat-shimmer overflow-hidden rounded-2xl shadow-2xl shadow-cyan-950/30">
-      <div className="border-b border-white/10 bg-white/[0.04] px-5 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-white">Manager control tower</div>
-            <div className="mt-1 text-xs text-slate-500">
-              filtered estate / first actions / audit trail
-            </div>
-          </div>
-          <div className="rounded-md bg-rose-300/15 px-3 py-2 text-xs font-semibold text-rose-100">
-            4 critical
-          </div>
-        </div>
-      </div>
-      <div className="grid gap-3 p-5 sm:grid-cols-4">
-        {[
-          ["Filtered", "25"],
-          ["Critical", "4"],
-          ["Review", "12"],
-          ["Clean", "41"],
-        ].map(([label, value]) => (
-          <div key={label} className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
-            <div className="text-xs text-slate-500">{label}</div>
-            <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
-          </div>
+      <div className="divide-y divide-[var(--border)] font-mono text-[12px]">
+        {visible.map((e, i) => (
+          <motion.div
+            key={`${tick}-${i}`}
+            initial={{ opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.35, delay: i * 0.03 }}
+            className="grid grid-cols-[68px_82px_70px_1fr] gap-2 px-3 py-2"
+          >
+            <span className="text-[var(--text-mute)]">{e.ts}</span>
+            <span className="text-white">{e.tag}</span>
+            <span className={e.action === "review" ? "text-amber-300" : "text-[var(--text-dim)]"}>
+              {e.action}
+            </span>
+            <span className="truncate text-[var(--text-dim)]">{e.loc}</span>
+          </motion.div>
         ))}
       </div>
-      <div className="px-5 pb-5">
-        <div className="overflow-x-auto rounded-xl border border-white/10">
-          {dashboardRows.map((row, index) => (
-            <motion.div
-              key={row[0]}
-              initial={{ opacity: 0.7 }}
-              animate={{ opacity: [0.72, 1, 0.72] }}
-              transition={{
-                duration: 3.2,
-                delay: index * 0.28,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              className="grid min-w-[620px] grid-cols-[96px_100px_minmax(140px,1fr)_76px] items-center gap-3 border-b border-white/10 bg-white/[0.035] px-4 py-3 text-sm last:border-b-0"
-            >
-              <span className="font-mono font-semibold text-white">{row[0]}</span>
-              <span className="text-slate-300">{row[1]}</span>
-              <span className="truncate text-slate-500">{row[2]}</span>
-              <span
-                className={
-                  row[3] === "critical"
-                    ? "rounded-full bg-rose-300/15 px-2 py-1 text-center text-xs font-semibold text-rose-100"
-                    : row[3] === "review"
-                      ? "rounded-full bg-amber-300/15 px-2 py-1 text-center text-xs font-semibold text-amber-100"
-                      : "rounded-full bg-emerald-300/15 px-2 py-1 text-center text-xs font-semibold text-emerald-100"
-                }
-              >
-                {row[3]}
-              </span>
-            </motion.div>
-          ))}
-        </div>
+      <div className="border-t hairline px-3 py-2 text-[11px] font-mono text-[var(--text-mute)]">
+        streaming · {events.length} events buffered
       </div>
     </div>
   );
 }
 
-function WorkflowSection() {
+function LiveBoard({ tick }: { tick: number }) {
   return (
-    <section id="product" className="relative z-10 px-4 py-24 sm:px-8 lg:px-12">
-      <div className="mx-auto max-w-7xl">
-        <Reveal>
-          <div className="max-w-3xl">
-            <h2 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
-              The impressive surface still opens the real product.
+    <section className="border-b hairline">
+      <div className="mx-auto max-w-6xl px-6 py-20">
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div className="max-w-xl">
+            <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
+              live · fab-2
+            </div>
+            <h2 className="display mt-4 text-2xl sm:text-3xl">
+              Every scan, every system, one source of truth.
             </h2>
-            <p className="mt-5 text-lg leading-8 text-slate-400">
-              Every major requirement is one click away, from scan workflows to
-              reconciliation and asset audit history.
-            </p>
           </div>
-        </Reveal>
-
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
-          {workflowLinks.map((item, index) => (
-            <Reveal key={item.href} delay={index * 0.06}>
-              <Link
-                href={item.href}
-                className="premium-glass stat-shimmer group block min-h-[220px] rounded-2xl p-6 transition hover:-translate-y-1 hover:border-cyan-200/40 hover:bg-cyan-200/[0.07]"
-              >
-                <div className="flex h-full flex-col justify-between gap-8">
-                  <div>
-                    <h3 className="text-2xl font-semibold text-white">{item.title}</h3>
-                    <p className="mt-4 max-w-xl text-base leading-7 text-slate-400">
-                      {item.copy}
-                    </p>
-                  </div>
-                  <div className="inline-flex items-center text-sm font-semibold text-cyan-200">
-                    Open surface
-                    <span className="ml-2 transition group-hover:translate-x-1">-&gt;</span>
+          <div className="flex items-center gap-2 text-[12px] font-mono text-[var(--text-dim)]">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            streaming
+          </div>
+        </div>
+        <div className="mt-10 grid gap-px bg-[var(--border)] md:grid-cols-[1.1fr_1fr]">
+          <div className="bg-[#0a0a0a]">
+            <Console tick={tick} />
+          </div>
+          <div className="bg-[#0a0a0a] p-6">
+            <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
+              status — last 60s
+            </div>
+            <div className="mt-5 grid grid-cols-3 gap-px bg-[var(--border)]">
+              {[
+                ["clean", "41", "emerald"],
+                ["review", "12", "amber"],
+                ["critical", "4", "rose"],
+              ].map(([l, v, c]) => (
+                <div key={l} className="bg-[#0a0a0a] p-4">
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-mute)]">{l}</div>
+                  <div
+                    className={
+                      "mt-2 text-2xl font-medium tracking-tight " +
+                      (c === "emerald" ? "text-emerald-300" : c === "amber" ? "text-amber-300" : "text-rose-300")
+                    }
+                  >
+                    {v}
                   </div>
                 </div>
-              </Link>
-            </Reveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function FinalCta() {
-  return (
-    <section className="relative z-10 px-4 pb-24 pt-10 sm:px-8 lg:px-12">
-      <Reveal>
-        <div className="premium-glass stat-shimmer mx-auto grid max-w-7xl gap-8 overflow-hidden rounded-2xl p-6 shadow-2xl shadow-black/20 lg:grid-cols-[1fr_420px] lg:p-10">
-          <div>
-            <h2 className="max-w-3xl text-4xl font-semibold leading-tight text-white sm:text-5xl">
-              Ready for manufacturing review, not just a demo screen.
-            </h2>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-400">
-              Scan events, state transitions, writebacks, reconciliation, asset
-              detail, and audit history all remain connected to the challenge API.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/tech"
-                className="btn-inset inline-flex min-h-[48px] items-center justify-center rounded-xl bg-white px-5 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-100"
-              >
-                Enter technician console
-              </Link>
-              <Link
-                href="/dev/barcodes"
-                className="btn-inset inline-flex min-h-[48px] items-center justify-center rounded-xl border border-white/15 bg-white/5 px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
-              >
-                Print test barcodes
-              </Link>
+              ))}
             </div>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-slate-950/70 p-4">
-            <div className="text-sm font-semibold text-white">Audit trail</div>
-            <div className="mt-4 space-y-3">
-              {auditEvents.map((event, index) => (
-                <motion.div
-                  key={event}
-                  initial={{ opacity: 0.86, x: 12 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, amount: 0.8 }}
-                  transition={{ delay: index * 0.05, duration: 0.35 }}
-                  className="flex items-center gap-3 rounded-md bg-white/[0.04] px-3 py-2 text-sm text-slate-300"
-                >
-                  <span className="h-2 w-2 rounded-full bg-cyan-200" />
-                  {event}
-                </motion.div>
+            <div className="mt-6 space-y-3 text-[12px] font-mono text-[var(--text-dim)]">
+              {[
+                ["receive", "DOCK-1 → DOCK-2", "2/min"],
+                ["deploy", "BAY-04 / BAY-12", "0.4/min"],
+                ["reconcile", "ops ↔ fin", "auto"],
+              ].map(([k, w, r]) => (
+                <div key={k} className="grid grid-cols-[80px_1fr_60px] gap-3">
+                  <span className="text-white">{k}</span>
+                  <span className="truncate text-[var(--text-mute)]">{w}</span>
+                  <span className="text-right text-[var(--text-dim)]">{r}</span>
+                </div>
               ))}
             </div>
           </div>
         </div>
-      </Reveal>
+      </div>
     </section>
   );
 }
 
-function Reveal({
-  children,
-  delay = 0,
-}: {
-  children: React.ReactNode;
-  delay?: number;
-}) {
+function WorkflowsPinned() {
   return (
-    <motion.div
-      initial={{ opacity: 0.86, y: 28 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.18 }}
-      transition={{ duration: 0.65, delay, ease: "easeOut" }}
-    >
-      {children}
-    </motion.div>
+    <section className="border-b hairline">
+      <div className="mx-auto max-w-6xl px-6 py-24">
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div className="max-w-xl">
+            <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
+              §01 — scan flows
+            </div>
+            <h2 className="display mt-4 text-3xl sm:text-4xl">
+              Four flows. Each one writes only what should change.
+            </h2>
+          </div>
+          <p className="max-w-sm text-[14px] leading-relaxed text-[var(--text-dim)]">
+            Receive, store, deploy, transfer. Every event records which of the three downstream systems it touches.
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-px overflow-hidden border hairline bg-[var(--border)] md:grid-cols-2">
+          {workflows.map((w) => (
+            <article key={w.title} className="card-sweep relative bg-[#0a0a0a] p-7">
+              <div className="relative z-10">
+                <div className="flex items-baseline justify-between">
+                  <span className="font-mono text-[11px] text-[var(--text-mute)]">{w.n}</span>
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--text-mute)]">
+                    flow
+                  </span>
+                </div>
+                <h3 className="display mt-5 text-3xl text-white">{w.title}</h3>
+                <p className="mt-4 max-w-md text-[14px] leading-relaxed text-[var(--text-dim)]">
+                  {w.body}
+                </p>
+                <ul className="mt-7 divide-y divide-[var(--border)] border-y hairline">
+                  {w.bullets.map((b) => (
+                    <li
+                      key={b}
+                      className="flex items-center gap-3 py-3 font-mono text-[12px] text-[var(--text-dim)]"
+                    >
+                      <span className="text-[var(--text-mute)]">›</span>
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Reconcile() {
+  return (
+    <section className="border-b hairline">
+      <div className="mx-auto grid max-w-6xl gap-12 px-6 py-24 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
+        <div className="max-w-xl">
+          <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
+            §02 — three-way reconcile
+          </div>
+          <h2 className="display mt-4 text-3xl sm:text-4xl">
+            Ops vs. facilities vs. finance. Line by line.
+          </h2>
+          <p className="mt-5 text-[14px] leading-relaxed text-[var(--text-dim)]">
+            When a row diverges across the three systems, AssetOps shows the delta and the last writer. Managers fix the source, not the symptom.
+          </p>
+          <Link
+            href="/manager/reconcile"
+            className="mt-7 inline-block text-[13px] text-white underline decoration-white/30 underline-offset-[6px] hover:decoration-white"
+          >
+            Open reconciliation
+          </Link>
+        </div>
+
+        <div className="border hairline">
+          <div className="grid grid-cols-4 border-b hairline">
+            {["tag", "ops", "facilities", "finance"].map((h) => (
+              <div
+                key={h}
+                className="border-r hairline px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-[var(--text-mute)] last:border-r-0"
+              >
+                {h}
+              </div>
+            ))}
+          </div>
+          {([
+            ["C0000108", "rma_pending", "BAY-12 / B-04",   "—"],
+            ["C0000110", "received",    "—",                "capitalized"],
+            ["C0000128", "deploy_pend", "BAY-12 / B-05",   "—"],
+            ["C0000131", "in_service",  "BAY-04 / C-01",   "capitalized"],
+            ["C0000133", "in_service",  "BAY-04 / C-02",   "capitalized"],
+          ] as const).map((r) => (
+            <div key={r[0]} className="grid grid-cols-4 border-b hairline last:border-b-0 font-mono text-[12px]">
+              <span className="border-r hairline px-3 py-2.5 text-white">{r[0]}</span>
+              <span className={cell(r[1])}>{r[1]}</span>
+              <span className={cell(r[2])}>{r[2]}</span>
+              <span className={cell(r[3], true)}>{r[3]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function cell(v: string, last = false) {
+  const base = "px-3 py-2.5 " + (last ? "" : "border-r hairline ");
+  if (v === "—") return base + "text-rose-300";
+  return base + "text-[var(--text-dim)]";
+}
+
+function Estate() {
+  return (
+    <section className="border-b hairline">
+      <div className="mx-auto max-w-6xl px-6 py-24">
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div className="max-w-xl">
+            <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
+              §03 — live estate
+            </div>
+            <h2 className="display mt-4 text-3xl sm:text-4xl">
+              Everything tracked. Nothing hidden.
+            </h2>
+          </div>
+          <div className="text-[12px] text-[var(--text-mute)] font-mono">
+            8 of 78 · sorted by status
+          </div>
+        </div>
+
+        <div className="mt-10 border hairline">
+          <div className="grid grid-cols-[110px_120px_1fr_120px_90px] gap-3 border-b hairline px-4 py-2.5 text-[10px] font-mono uppercase tracking-wider text-[var(--text-mute)]">
+            <span>tag</span>
+            <span>state</span>
+            <span>location</span>
+            <span>custodian</span>
+            <span className="text-right">status</span>
+          </div>
+          {rows.map((r) => (
+            <div
+              key={r[0]}
+              className="grid grid-cols-[110px_120px_1fr_120px_90px] items-center gap-3 border-b hairline px-4 py-3 font-mono text-[12px] last:border-b-0 transition hover:bg-white/[0.015]"
+            >
+              <Link href={`/manager/assets/${r[0]}`} className="text-white hover:underline">
+                {r[0]}
+              </Link>
+              <span className="text-[var(--text-dim)]">{r[1]}</span>
+              <span className="truncate text-[var(--text-mute)]">{r[2]}</span>
+              <span className="text-[var(--text-dim)]">{r[3]}</span>
+              <span
+                className={
+                  "text-right " +
+                  (r[4] === "critical"
+                    ? "text-rose-300"
+                    : r[4] === "review"
+                      ? "text-amber-300"
+                      : "text-emerald-300")
+                }
+              >
+                {r[4]}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Cta() {
+  return (
+    <section className="border-b hairline">
+      <div className="mx-auto max-w-6xl px-6 py-24">
+        <div className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end">
+          <h2 className="display max-w-3xl text-4xl sm:text-5xl">
+            Open the console. Scan one asset. See it propagate.
+          </h2>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-[14px]">
+            <Link
+              href="/tech"
+              className="text-white underline decoration-white/30 underline-offset-[6px] hover:decoration-white"
+            >
+              Technician console
+            </Link>
+            <Link href="/dev/barcodes" className="text-[var(--text-dim)] hover:text-white transition">
+              Print test barcodes →
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Foot() {
+  return (
+    <footer>
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 text-[12px] text-[var(--text-mute)] font-mono">
+        <span>AssetOps · Cerebras manufacturing</span>
+        <span>build 0.4.2 · {new Date().getFullYear()}</span>
+      </div>
+    </footer>
   );
 }

@@ -70,56 +70,60 @@ export default async function ManagerLandingPage({
   if (q) nextParams.set("q", q);
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="space-y-8 py-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
             Manager
           </p>
-          <h1 className="mt-1 text-2xl font-semibold text-gray-950">
-            Asset control tower
-          </h1>
+          <h1 className="display mt-3 text-3xl sm:text-4xl">Asset control tower</h1>
+          <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-[var(--text-dim)]">
+            Live estate, exceptions surfaced first. Drill into any asset for full event history.
+          </p>
         </div>
         <Link
           href="/manager/reconcile"
-          className="rounded-md bg-gray-950 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800"
+          className="inline-flex h-10 items-center rounded-lg bg-white px-4 text-sm font-medium text-[#0a0a0a] transition hover:bg-white/90"
         >
-          Reconcile
+          Open reconciliation →
         </Link>
-      </div>
+      </header>
 
-      <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_420px]">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="grid gap-3 sm:grid-cols-4">
-          <Metric label="Filtered" value={filtered.length.toString()} />
+          <Metric label="Filtered" value={filtered.length.toString()} delay={0} />
           <Metric
             label="Critical"
             value={reconcileReport.summary.critical.toString()}
             tone="critical"
+            delay={60}
           />
           <Metric
             label="Review"
             value={reconcileReport.summary.review.toString()}
             tone="review"
+            delay={120}
           />
           <Metric
             label="Clean"
             value={reconcileReport.totals.clean_ops_assets.toString()}
             tone="clean"
+            delay={180}
           />
         </div>
-        <div className="rounded-md border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="tile">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+            <h2 className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
               First actions
             </h2>
             <Link
               href="/manager/reconcile"
-              className="text-sm font-semibold text-blue-700 hover:underline"
+              className="text-xs text-white hover:underline decoration-white/40 underline-offset-4"
             >
-              Open report
+              Open report →
             </Link>
           </div>
-          <div className="mt-3 space-y-3">
+          <div className="mt-4 space-y-2">
             {reconcileReport.items.slice(0, 3).map((item) => (
               <ActionItem key={item.id} item={item} />
             ))}
@@ -127,68 +131,56 @@ export default async function ManagerLandingPage({
         </div>
       </section>
 
-      <form className="rounded-md border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="grid gap-3 md:grid-cols-5">
-          <label className="block">
-            <span className="mb-1 block text-sm font-medium text-gray-700">
-              State
-            </span>
+      <form className="rounded-xl border hairline bg-white/[0.015] p-5">
+        <div className="grid gap-4 md:grid-cols-5">
+          <Field label="State">
             <select
               name="state"
               defaultValue={state ?? ""}
-              className="min-h-[44px] w-full rounded-md border border-gray-300 bg-white px-3 text-sm"
+              className="input-dark"
             >
               {STATES.map((item) => (
-                <option key={item || "all"} value={item}>
+                <option key={item || "all"} value={item} className="bg-[#0a0a0a]">
                   {item ? item.replace(/_/g, " ") : "All states"}
                 </option>
               ))}
             </select>
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-sm font-medium text-gray-700">
-              Site
-            </span>
+          </Field>
+          <Field label="Site">
             <input
               name="site"
               defaultValue={site ?? ""}
-              className="min-h-[44px] w-full rounded-md border border-gray-300 px-3 text-sm"
+              className="input-dark"
               placeholder="Lab-Building-A"
             />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-sm font-medium text-gray-700">
-              Custodian
-            </span>
+          </Field>
+          <Field label="Custodian">
             <input
               name="custodian"
               defaultValue={custodian ?? ""}
-              className="min-h-[44px] w-full rounded-md border border-gray-300 px-3 text-sm"
+              className="input-dark"
               placeholder="tech-jane"
             />
-          </label>
-          <label className="block md:col-span-2">
-            <span className="mb-1 block text-sm font-medium text-gray-700">
-              Search
-            </span>
+          </Field>
+          <Field label="Search" wide>
             <input
               name="q"
               defaultValue={q}
-              className="min-h-[44px] w-full rounded-md border border-gray-300 px-3 text-sm"
+              className="input-dark"
               placeholder="tag, serial, model, location"
             />
-          </label>
+          </Field>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-5 flex flex-wrap items-center gap-2">
           <button
             type="submit"
-            className="min-h-[44px] rounded-md bg-gray-950 px-4 text-sm font-semibold text-white shadow-sm hover:bg-gray-800"
+            className="inline-flex h-10 items-center rounded-lg bg-white px-4 text-sm font-medium text-[#0a0a0a] transition hover:bg-white/90"
           >
             Apply
           </button>
           <Link
             href="/manager"
-            className="min-h-[44px] rounded-md border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-sm hover:bg-gray-50"
+            className="inline-flex h-10 items-center rounded-lg border border-[var(--border-strong)] bg-white/[0.02] px-4 text-sm text-white transition hover:bg-white/[0.05]"
           >
             Clear
           </Link>
@@ -196,57 +188,54 @@ export default async function ManagerLandingPage({
       </form>
 
       <div className="grid gap-3 sm:grid-cols-4">
-        <Metric label="Received" value={countState(assets, "received").toString()} />
-        <Metric label="Stored" value={countState(assets, "stored").toString()} />
-        <Metric
-          label="In service"
-          value={countState(assets, "in_service").toString()}
-        />
-        <Metric
-          label="RMA pending"
-          value={countState(assets, "rma_pending").toString()}
-        />
+        <Metric label="Received" value={countState(assets, "received").toString()} delay={0} />
+        <Metric label="Stored" value={countState(assets, "stored").toString()} delay={60} />
+        <Metric label="In service" value={countState(assets, "in_service").toString()} delay={120} />
+        <Metric label="RMA pending" value={countState(assets, "rma_pending").toString()} delay={180} />
       </div>
 
-      <div className="overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border hairline">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <table className="min-w-full divide-y divide-[var(--border)] text-sm">
+            <thead className="bg-white/[0.02] text-left">
               <tr>
-                <th className="px-4 py-3">Asset</th>
-                <th className="px-4 py-3">State</th>
-                <th className="px-4 py-3">Location</th>
-                <th className="px-4 py-3">Custodian</th>
-                <th className="px-4 py-3">Updated</th>
+                {["Asset", "State", "Location", "Custodian", "Updated"].map((h) => (
+                  <th
+                    key={h}
+                    className="px-4 py-3 text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--text-mute)]"
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-[var(--border)]">
               {visible.map((asset) => (
-                <tr key={asset.asset_tag} className="hover:bg-gray-50">
+                <tr key={asset.asset_tag} className="transition hover:bg-white/[0.025]">
                   <td className="px-4 py-3">
                     <Link
-                      className="font-semibold text-blue-700 hover:underline"
+                      className="font-mono text-[13px] text-white hover:underline decoration-white/40 underline-offset-4"
                       href={`/manager/assets/${asset.asset_tag}`}
                     >
                       {asset.asset_tag}
                     </Link>
-                    <div className="text-xs text-gray-500">{asset.serial}</div>
+                    <div className="text-[11px] text-[var(--text-mute)]">{asset.serial}</div>
                   </td>
                   <td className="px-4 py-3">
                     <StateBadge state={asset.state} />
                   </td>
-                  <td className="max-w-[320px] px-4 py-3 text-gray-700">
+                  <td className="max-w-[320px] px-4 py-3 text-[var(--text-dim)]">
                     {locationLabel(asset.location)}
                   </td>
-                  <td className="px-4 py-3 text-gray-700">{asset.custodian}</td>
-                  <td className="px-4 py-3 text-gray-500">
+                  <td className="px-4 py-3 text-[var(--text-dim)]">{asset.custodian}</td>
+                  <td className="px-4 py-3 font-mono text-[12px] text-[var(--text-mute)]">
                     {formatDateTime(asset.updated_at)}
                   </td>
                 </tr>
               ))}
               {!visible.length ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-gray-500" colSpan={5}>
+                  <td className="px-4 py-10 text-center text-[var(--text-mute)]" colSpan={5}>
                     No assets match these filters.
                   </td>
                 </tr>
@@ -256,26 +245,27 @@ export default async function ManagerLandingPage({
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-gray-600">
-        <span>
-          Page {currentPage} of {pageCount}
+      <div className="flex items-center justify-between text-sm text-[var(--text-dim)]">
+        <span className="font-mono text-[12px] text-[var(--text-mute)]">
+          page {currentPage} / {pageCount}
         </span>
         <div className="flex gap-2">
-          <PageLink
-            label="Previous"
-            disabled={currentPage <= 1}
-            params={nextParams}
-            page={currentPage - 1}
-          />
-          <PageLink
-            label="Next"
-            disabled={currentPage >= pageCount}
-            params={nextParams}
-            page={currentPage + 1}
-          />
+          <PageLink label="Previous" disabled={currentPage <= 1} params={nextParams} page={currentPage - 1} />
+          <PageLink label="Next" disabled={currentPage >= pageCount} params={nextParams} page={currentPage + 1} />
         </div>
       </div>
     </div>
+  );
+}
+
+function Field({ label, children, wide }: { label: string; children: React.ReactNode; wide?: boolean }) {
+  return (
+    <label className={`block ${wide ? "md:col-span-2" : ""}`}>
+      <span className="mb-1.5 block text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--text-mute)]">
+        {label}
+      </span>
+      {children}
+    </label>
   );
 }
 
@@ -283,28 +273,37 @@ function Metric({
   label,
   value,
   tone = "neutral",
+  delay = 0,
 }: {
   label: string;
   value: string;
   tone?: ReconcileSeverity | "clean" | "neutral";
+  delay?: number;
 }) {
   const toneClass =
     tone === "critical"
-      ? "border-rose-200 bg-rose-50"
+      ? "tile-critical"
       : tone === "review"
-        ? "border-amber-200 bg-amber-50"
-        : tone === "watch"
-          ? "border-violet-200 bg-violet-50"
-          : tone === "clean"
-            ? "border-emerald-200 bg-emerald-50"
-            : "border-gray-200 bg-white";
+        ? "tile-review"
+        : tone === "clean"
+          ? "tile-clean"
+          : "";
+
+  const valueClass =
+    tone === "critical"
+      ? "text-rose-200"
+      : tone === "review"
+        ? "text-amber-200"
+        : tone === "clean"
+          ? "text-emerald-200"
+          : "text-white";
 
   return (
-    <div className={`rounded-md border p-4 shadow-sm ${toneClass}`}>
-      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+    <div className={`tile animate-rise ${toneClass}`} style={{ animationDelay: `${delay}ms` }}>
+      <div className="text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--text-mute)]">
         {label}
       </div>
-      <div className="mt-1 text-2xl font-semibold text-gray-950">{value}</div>
+      <div className={`mt-2 text-3xl font-medium tracking-tight tabular-nums ${valueClass}`}>{value}</div>
     </div>
   );
 }
@@ -312,26 +311,26 @@ function Metric({
 function ActionItem({ item }: { item: ReconcileItem }) {
   const severityClass =
     item.severity === "critical"
-      ? "bg-rose-100 text-rose-800"
+      ? "border-rose-300/20 bg-rose-300/[0.06] text-rose-200"
       : item.severity === "review"
-        ? "bg-amber-100 text-amber-900"
-        : "bg-violet-100 text-violet-800";
+        ? "border-amber-300/20 bg-amber-300/[0.06] text-amber-200"
+        : "border-violet-300/20 bg-violet-300/[0.06] text-violet-200";
 
   return (
     <Link
       href={`/manager/assets/${item.tag}`}
-      className="block rounded-md border border-gray-100 bg-gray-50 p-3 hover:border-blue-200 hover:bg-blue-50"
+      className="block rounded-lg border hairline bg-white/[0.015] p-3 transition hover:border-[var(--border-strong)] hover:bg-white/[0.04]"
     >
       <div className="flex items-center justify-between gap-3">
-        <span className="font-semibold text-gray-950">{item.tag}</span>
+        <span className="font-mono text-[13px] text-white">{item.tag}</span>
         <span
-          className={`rounded px-2 py-1 text-xs font-semibold uppercase tracking-wide ${severityClass}`}
+          className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${severityClass}`}
         >
           {item.severity}
         </span>
       </div>
-      <div className="mt-1 text-sm font-medium text-gray-800">{item.title}</div>
-      <div className="mt-1 text-xs text-gray-500">
+      <div className="mt-1 text-[13px] text-white/90">{item.title}</div>
+      <div className="mt-1 text-[11.5px] text-[var(--text-mute)]">
         {item.owner}: {item.recommendation}
       </div>
     </Link>
@@ -356,13 +355,13 @@ function PageLink({
   const next = new URLSearchParams(params);
   next.set("page", String(page));
   return disabled ? (
-    <span className="rounded-md border border-gray-200 px-3 py-2 text-gray-400">
+    <span className="inline-flex h-9 items-center rounded-lg border hairline px-3 text-[13px] text-[var(--text-mute)]">
       {label}
     </span>
   ) : (
     <Link
       href={`/manager?${next.toString()}`}
-      className="rounded-md border border-gray-300 bg-white px-3 py-2 font-semibold text-gray-700 hover:bg-gray-50"
+      className="inline-flex h-9 items-center rounded-lg border border-[var(--border-strong)] bg-white/[0.02] px-3 text-[13px] text-white transition hover:bg-white/[0.05]"
     >
       {label}
     </Link>
