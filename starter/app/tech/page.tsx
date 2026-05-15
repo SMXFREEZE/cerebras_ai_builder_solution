@@ -7,6 +7,7 @@ const WORKFLOWS = [
     meta: "Dock",
     body: "Inbound scan. Locks the tag to RECEIVED and validates against the PO.",
     n: "01",
+    writes: ["Ops"],
   },
   {
     href: "/tech/store",
@@ -14,6 +15,7 @@ const WORKFLOWS = [
     meta: "Inventory",
     body: "Move from dock to shelf. Facilities row updated; no finance write yet.",
     n: "02",
+    writes: ["Ops", "Facilities if de-racking"],
   },
   {
     href: "/tech/deploy",
@@ -21,6 +23,7 @@ const WORKFLOWS = [
     meta: "Rack",
     body: "Install into a rack. The only event that capitalizes the asset in finance.",
     n: "03",
+    writes: ["Ops", "Facilities", "Finance"],
   },
   {
     href: "/tech/transfer",
@@ -28,6 +31,7 @@ const WORKFLOWS = [
     meta: "Custody",
     body: "Move custody between technicians. Ops record only — facilities and finance untouched.",
     n: "04",
+    writes: ["Ops custody"],
   },
 ];
 
@@ -57,7 +61,7 @@ export default function TechLandingPage() {
           <Link
             key={w.href}
             href={w.href}
-            className="card-sweep relative block bg-[#0a0a0a] p-7 animate-rise"
+            className="card-sweep group relative block bg-[#0a0a0a] p-7 animate-rise"
             style={{ animationDelay: `${i * 60}ms` }}
           >
             <div className="relative z-10">
@@ -71,9 +75,19 @@ export default function TechLandingPage() {
               <p className="mt-3 max-w-sm text-[13.5px] leading-relaxed text-[var(--text-dim)]">
                 {w.body}
               </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {w.writes.map((write) => (
+                  <span
+                    key={write}
+                    className="rounded-full border border-white/10 bg-white/[0.025] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-dim)] transition group-hover:border-cyan-200/25 group-hover:text-cyan-100"
+                  >
+                    {write}
+                  </span>
+                ))}
+              </div>
               <div className="mt-7 inline-flex items-center text-[12px] text-[var(--text-mute)]">
                 Open
-                <span className="ml-1.5 transition-transform">→</span>
+                <span className="ml-1.5 transition-transform group-hover:translate-x-1">→</span>
               </div>
             </div>
           </Link>

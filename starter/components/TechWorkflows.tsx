@@ -68,7 +68,7 @@ async function postWorkflow(
 
 async function fetchAsset(tag: string): Promise<Asset | null> {
   try {
-    const res = await fetch(`/api/upstream/v1/assets/${tag}`, { cache: "no-store" });
+    const res = await fetch(`/api/upstream/assets/${tag}`, { cache: "no-store" });
     if (!res.ok) return null;
     return (await res.json()) as Asset;
   } catch {
@@ -251,7 +251,11 @@ function AssetPreview({ asset }: { asset: Asset }) {
 }
 
 function ScanCard({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-xl border hairline bg-white/[0.02] p-5">{children}</div>;
+  return (
+    <div className="card-sweep relative overflow-hidden rounded-xl border hairline bg-gradient-to-b from-white/[0.035] to-white/[0.012] p-5">
+      <div className="relative z-10">{children}</div>
+    </div>
+  );
 }
 
 function ChipButton({

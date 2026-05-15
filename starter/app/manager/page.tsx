@@ -89,8 +89,8 @@ export default async function ManagerLandingPage({
         </Link>
       </header>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="grid gap-3 sm:grid-cols-4">
+      <section className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="grid items-start gap-3 sm:grid-cols-4">
           <Metric label="Filtered" value={filtered.length.toString()} delay={0} />
           <Metric
             label="Critical"
@@ -111,7 +111,7 @@ export default async function ManagerLandingPage({
             delay={180}
           />
         </div>
-        <div className="tile">
+        <div className="tile min-h-0">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
               First actions
@@ -129,6 +129,24 @@ export default async function ManagerLandingPage({
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-3">
+        <Signal
+          label="Reviewer priority"
+          value="Critical drift first"
+          body="Ops, facilities, and finance mismatches are pinned before clean inventory counts."
+        />
+        <Signal
+          label="Scan contract"
+          value="Scoped writebacks"
+          body="Deploy writes facilities and finance; transfer only changes custody."
+        />
+        <Signal
+          label="Audit posture"
+          value="Event evidence"
+          body="Standup triage starts from who scanned what, where, and when."
+        />
       </section>
 
       <form className="rounded-xl border hairline bg-white/[0.015] p-5">
@@ -299,11 +317,33 @@ function Metric({
           : "text-white";
 
   return (
-    <div className={`tile animate-rise ${toneClass}`} style={{ animationDelay: `${delay}ms` }}>
+    <div className={`tile min-h-[132px] animate-rise ${toneClass}`} style={{ animationDelay: `${delay}ms` }}>
       <div className="text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--text-mute)]">
         {label}
       </div>
       <div className={`mt-2 text-3xl font-medium tracking-tight tabular-nums ${valueClass}`}>{value}</div>
+    </div>
+  );
+}
+
+function Signal({
+  label,
+  value,
+  body,
+}: {
+  label: string;
+  value: string;
+  body: string;
+}) {
+  return (
+    <div className="card-sweep relative overflow-hidden rounded-xl border hairline bg-white/[0.015] p-4">
+      <div className="relative z-10">
+        <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
+          {label}
+        </div>
+        <div className="mt-2 text-[15px] font-medium text-white">{value}</div>
+        <p className="mt-1.5 text-[12.5px] leading-relaxed text-[var(--text-dim)]">{body}</p>
+      </div>
     </div>
   );
 }

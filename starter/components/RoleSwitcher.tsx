@@ -14,7 +14,6 @@ export function RoleSwitcher() {
     const next: Role = role === "tech" ? "manager" : "tech";
     setRole(next);
     setRoleState(next);
-    window.location.reload();
   }
 
   const label =

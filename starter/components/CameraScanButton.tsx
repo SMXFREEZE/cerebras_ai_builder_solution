@@ -124,40 +124,46 @@ export function CameraScanButton({
         type="button"
         disabled={disabled}
         onClick={() => setOpen(true)}
-        className="min-h-[44px] rounded-md border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+        aria-label="Open camera scanner"
+        className="min-h-[58px] rounded-xl border border-cyan-200/20 bg-cyan-200/[0.06] px-4 text-sm font-semibold text-cyan-50 shadow-[0_0_24px_rgba(125,211,252,0.06)] transition hover:border-cyan-200/35 hover:bg-cyan-200/[0.10] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {label}
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-50 bg-gray-950/90 p-4">
+        <div className="fixed inset-0 z-50 bg-[#030712]/95 p-4 backdrop-blur-xl">
           <div className="mx-auto flex h-full max-w-md flex-col gap-3">
             <div className="flex items-center justify-between text-white">
-              <div className="text-sm font-semibold">Scan code</div>
+              <div>
+                <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-cyan-100/60">
+                  Camera scanner
+                </div>
+                <div className="mt-1 text-sm font-semibold">Scan code</div>
+              </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="min-h-[44px] rounded-md border border-white/30 px-4 text-sm font-semibold"
+                className="min-h-[44px] rounded-lg border border-white/20 bg-white/[0.04] px-4 text-sm font-semibold transition hover:bg-white/[0.08]"
               >
                 Close
               </button>
             </div>
-            <div className="relative min-h-0 flex-1 overflow-hidden rounded-md bg-black">
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
               <video
                 ref={videoRef}
                 muted
                 playsInline
                 className="h-full w-full object-cover"
               />
-              <div className="pointer-events-none absolute inset-8 rounded-lg border-2 border-white/70 shadow-[0_0_0_999px_rgba(0,0,0,0.25)]">
+              <div className="pointer-events-none absolute inset-8 rounded-2xl border border-cyan-100/70 shadow-[0_0_0_999px_rgba(0,0,0,0.32)]">
                 <div className="scan-line absolute left-4 right-4 top-1/2 h-0.5 bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.9)]" />
               </div>
             </div>
-            <div className="rounded-md border border-white/20 bg-white/10 p-3 text-sm text-white">
+            <div className="rounded-xl border border-white/15 bg-white/[0.06] p-3 text-sm text-white">
               {hint}
             </div>
             {error ? (
-              <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <div className="rounded-xl border border-amber-300/25 bg-amber-300/[0.08] p-3 text-sm text-amber-100">
                 {error}
               </div>
             ) : null}

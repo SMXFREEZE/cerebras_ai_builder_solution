@@ -100,6 +100,24 @@ export function ReconcileView() {
         <span className="font-mono">{report.items.length} items</span>
       </div>
 
+      <div className="grid gap-3 md:grid-cols-3">
+        <LegendItem
+          tone="critical"
+          title="Fix today"
+          body="A physical location or finance status disagrees with operations."
+        />
+        <LegendItem
+          tone="review"
+          title="Needs a human"
+          body="The row may be lag, policy, or a missing scan; it needs owner context."
+        />
+        <LegendItem
+          tone="watch"
+          title="Probably fine"
+          body="The systems differ because their scopes are intentionally different."
+        />
+      </div>
+
       <div className="space-y-3">
         {report.items.map((item) => (
           <ReconcileCard key={item.id} item={item} />
@@ -111,6 +129,39 @@ export function ReconcileView() {
           </div>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+function LegendItem({
+  tone,
+  title,
+  body,
+}: {
+  tone: ReconcileSeverity;
+  title: string;
+  body: string;
+}) {
+  const toneClass =
+    tone === "critical"
+      ? "border-rose-300/20 bg-rose-300/[0.035]"
+      : tone === "review"
+        ? "border-amber-300/20 bg-amber-300/[0.035]"
+        : "border-violet-300/20 bg-violet-300/[0.035]";
+  const dotClass =
+    tone === "critical"
+      ? "bg-rose-300"
+      : tone === "review"
+        ? "bg-amber-300"
+        : "bg-violet-300";
+
+  return (
+    <div className={`rounded-xl border p-4 ${toneClass}`}>
+      <div className="flex items-center gap-2">
+        <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
+        <div className="text-[13px] font-medium text-white">{title}</div>
+      </div>
+      <p className="mt-2 text-[12.5px] leading-relaxed text-[var(--text-dim)]">{body}</p>
     </div>
   );
 }
