@@ -24,8 +24,17 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(cors, {
     origin: true,
     methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
+    allowedHeaders: ["Authorization", "Content-Type"],
   });
+
+  // Some command-line clients send empty POSTs as form or text requests.
+  // Parse those as strings so routes can still return domain errors instead
+  // of a framework-level unsupported-media-type 500.
+  app.addContentTypeParser(
+    ["application/x-www-form-urlencoded", "text/plain"],
+    { parseAs: "string" },
+    (_req, body, done) => done(null, body),
+  );
 
   await healthRoute(app);
 

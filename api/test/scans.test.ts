@@ -317,6 +317,27 @@ describe("mock writes", () => {
 });
 
 describe("reset", () => {
+  it("accepts empty reset POSTs from form/text clients", async () => {
+    const app = await getApp();
+    const form = await app.inject({
+      method: "POST",
+      url: "/v1/reset",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      payload: "",
+    });
+    expect(form.statusCode).toBe(200);
+    expect(form.json().ok).toBe(true);
+
+    const text = await app.inject({
+      method: "POST",
+      url: "/v1/reset",
+      headers: { "content-type": "text/plain" },
+      payload: "",
+    });
+    expect(text.statusCode).toBe(200);
+    expect(text.json().ok).toBe(true);
+  });
+
   it("reset wipes new assets and re-seeds the fixture", async () => {
     resetDb();
     await inject("POST", "/v1/scans/receive", {

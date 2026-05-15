@@ -88,13 +88,13 @@ function Hero() {
             ops · facilities · finance — one event stream
           </div>
           <h1 className="display mt-7 text-4xl sm:text-5xl lg:text-[68px] animate-rise" style={{ animationDelay: "60ms" }}>
-            Asset records that match what's on the floor.
+            Asset records that match what&apos;s on the floor.
           </h1>
           <p
             className="mt-7 max-w-xl text-[15px] leading-relaxed text-[var(--text-dim)] sm:text-base animate-rise"
             style={{ animationDelay: "120ms" }}
           >
-            AssetOps reconciles operations, facilities, and finance against the same scan event. No more weekly spreadsheet sweeps. No more deploying gear that finance hasn't capitalized.
+            AssetOps reconciles operations, facilities, and finance against the same scan event. No more weekly spreadsheet sweeps. No more deploying gear that finance hasn&apos;t capitalized.
           </p>
 
           <div
