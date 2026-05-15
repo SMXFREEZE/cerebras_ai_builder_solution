@@ -10,3 +10,39 @@ body {
 body {
   @apply bg-gray-50 text-gray-900 antialiased;
 }
+
+.page-enter {
+  animation: page-enter 180ms ease-out both;
+}
+
+.scan-line {
+  animation: scan-line 1200ms ease-in-out infinite;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scan-line {
+  0%,
+  100% {
+    transform: translateY(-72px);
+  }
+  50% {
+    transform: translateY(72px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .scan-line {
+    animation: none;
+  }
+}

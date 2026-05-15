@@ -3,6 +3,8 @@ import { StateBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/format";
 import { locationLabel } from "@/lib/locations";
+import { buildReconcileReport } from "@/lib/reconcile";
+import type { ReconcileItem, ReconcileSeverity } from "@/lib/reconcile";
 import type { AssetState } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +39,10 @@ export default async function ManagerLandingPage({
   const q = params.q?.trim().toLowerCase() ?? "";
   const page = Math.max(1, Number(params.page ?? "1") || 1);
 
-  const assets = await api.assets.list({ state, site, custodian });
+  const [assets, reconcileReport] = await Promise.all([
+    api.assets.list({ state, site, custodian }),
+    buildReconcileReport(),
+  ]);
   const filtered = q
     ? assets.filter((asset) =>
         [
@@ -82,6 +87,45 @@ export default async function ManagerLandingPage({
           Reconcile
         </Link>
       </div>
+
+      <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="grid gap-3 sm:grid-cols-4">
+          <Metric label="Filtered" value={filtered.length.toString()} />
+          <Metric
+            label="Critical"
+            value={reconcileReport.summary.critical.toString()}
+            tone="critical"
+          />
+          <Metric
+            label="Review"
+            value={reconcileReport.summary.review.toString()}
+            tone="review"
+          />
+          <Metric
+            label="Clean"
+            value={reconcileReport.totals.clean_ops_assets.toString()}
+            tone="clean"
+          />
+        </div>
+        <div className="rounded-md border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+              First actions
+            </h2>
+            <Link
+              href="/manager/reconcile"
+              className="text-sm font-semibold text-blue-700 hover:underline"
+            >
+              Open report
+            </Link>
+          </div>
+          <div className="mt-3 space-y-3">
+            {reconcileReport.items.slice(0, 3).map((item) => (
+              <ActionItem key={item.id} item={item} />
+            ))}
+          </div>
+        </div>
+      </section>
 
       <form className="rounded-md border border-gray-200 bg-white p-4 shadow-sm">
         <div className="grid gap-3 md:grid-cols-5">
@@ -152,12 +196,15 @@ export default async function ManagerLandingPage({
       </form>
 
       <div className="grid gap-3 sm:grid-cols-4">
-        <Metric label="Filtered" value={filtered.length.toString()} />
         <Metric label="Received" value={countState(assets, "received").toString()} />
         <Metric label="Stored" value={countState(assets, "stored").toString()} />
         <Metric
           label="In service"
           value={countState(assets, "in_service").toString()}
+        />
+        <Metric
+          label="RMA pending"
+          value={countState(assets, "rma_pending").toString()}
         />
       </div>
 
@@ -232,14 +279,62 @@ export default async function ManagerLandingPage({
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  tone?: ReconcileSeverity | "clean" | "neutral";
+}) {
+  const toneClass =
+    tone === "critical"
+      ? "border-rose-200 bg-rose-50"
+      : tone === "review"
+        ? "border-amber-200 bg-amber-50"
+        : tone === "watch"
+          ? "border-violet-200 bg-violet-50"
+          : tone === "clean"
+            ? "border-emerald-200 bg-emerald-50"
+            : "border-gray-200 bg-white";
+
   return (
-    <div className="rounded-md border border-gray-200 bg-white p-4 shadow-sm">
+    <div className={`rounded-md border p-4 shadow-sm ${toneClass}`}>
       <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {label}
       </div>
       <div className="mt-1 text-2xl font-semibold text-gray-950">{value}</div>
     </div>
+  );
+}
+
+function ActionItem({ item }: { item: ReconcileItem }) {
+  const severityClass =
+    item.severity === "critical"
+      ? "bg-rose-100 text-rose-800"
+      : item.severity === "review"
+        ? "bg-amber-100 text-amber-900"
+        : "bg-violet-100 text-violet-800";
+
+  return (
+    <Link
+      href={`/manager/assets/${item.tag}`}
+      className="block rounded-md border border-gray-100 bg-gray-50 p-3 hover:border-blue-200 hover:bg-blue-50"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-semibold text-gray-950">{item.tag}</span>
+        <span
+          className={`rounded px-2 py-1 text-xs font-semibold uppercase tracking-wide ${severityClass}`}
+        >
+          {item.severity}
+        </span>
+      </div>
+      <div className="mt-1 text-sm font-medium text-gray-800">{item.title}</div>
+      <div className="mt-1 text-xs text-gray-500">
+        {item.owner}: {item.recommendation}
+      </div>
+    </Link>
   );
 }
 

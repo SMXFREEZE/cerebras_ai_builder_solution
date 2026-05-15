@@ -42,6 +42,15 @@ upstream API with the server-only token.
 I kept this out of client components so the token never moves to the browser and
 so partial side-effect failures can be reported in one place.
 
+## Reference pass
+
+I used the supplied references as product/design checks rather than source code:
+
+- Shelf.nu pushed the scan experience toward explicit modes, duplicate feedback, and "what now?" recovery copy.
+- The shadcn/TailAdmin dashboard references pushed the manager home toward an action-first summary before the table.
+- The barcode scanner references pushed the camera flow to detect supported formats, stop streams on close, and keep the keyboard scanner as the reliable primary path.
+- The animation references were intentionally reduced to a small page-enter and scan-line treatment; this is an operations tool, not a portfolio site.
+
 ## Three calls I nearly made the other way
 
 1. I nearly used direct browser calls for scans because the starter proxy makes it easy. I moved mutations into workflow route handlers so deploy/store can be atomic from the UI perspective and keep finance/facilities writes server-side.
