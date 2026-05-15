@@ -34,16 +34,16 @@ const scanEvents = [
 ];
 
 const floatingAssets = [
-  { tag: "C0009001", state: "in service", owner: "tech-ana", delay: 0 },
-  { tag: "C0009418", state: "stored", owner: "inventory", delay: 0.4 },
-  { tag: "C0008772", state: "review", owner: "manager", delay: 0.8 },
+  { tag: "C0000101", state: "in service", owner: "tech-ana", delay: 0 },
+  { tag: "C0000104", state: "stored", owner: "inventory", delay: 0.4 },
+  { tag: "C0000108", state: "review", owner: "manager", delay: 0.8 },
 ];
 
 const dashboardRows = [
-  ["C0009001", "In service", "Rack B-04 / U21", "clean"],
-  ["C0009418", "Stored", "Shelf-3", "clean"],
-  ["C0008772", "RMA pending", "Finance mismatch", "review"],
-  ["C0008120", "Received", "Missing rack handoff", "critical"],
+  ["C0000101", "In service", "Rack B-04 / U21", "clean"],
+  ["C0000104", "Stored", "Shelf-3", "clean"],
+  ["C0000108", "RMA pending", "Finance mismatch", "review"],
+  ["C0000110", "Received", "Rack mismatch", "critical"],
 ];
 
 const workflowLinks = [
@@ -63,7 +63,7 @@ const workflowLinks = [
     copy: "Compare operations, facilities, and finance records before gaps become manufacturing blockers.",
   },
   {
-    href: "/manager/assets/C0009001",
+    href: "/manager/assets/C0000101",
     title: "Asset detail page",
     copy: "Drill into placement, procurement context, custody, and full event history for one asset.",
   },
@@ -100,6 +100,118 @@ const auditEvents = [
 ];
 
 type ScanEvent = (typeof scanEvents)[number];
+
+function AmbientLines() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (!canvas || !ctx || reduceMotion.matches) return;
+
+    const canvasEl = canvas;
+    const context = ctx;
+    const particleCount = window.innerWidth < 720 ? 34 : 64;
+    const maxDistance = window.innerWidth < 720 ? 118 : 158;
+    let width = 0;
+    let height = 0;
+    let animationId = 0;
+
+    type Particle = {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      r: number;
+    };
+
+    let particles: Particle[] = [];
+
+    function resize() {
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvasEl.width = Math.floor(width * ratio);
+      canvasEl.height = Math.floor(height * ratio);
+      canvasEl.style.width = `${width}px`;
+      canvasEl.style.height = `${height}px`;
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+
+    function createParticle(): Particle {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 0.12 + Math.random() * 0.22;
+      return {
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        r: 0.7 + Math.random() * 1.2,
+      };
+    }
+
+    function init() {
+      resize();
+      particles = Array.from({ length: particleCount }, createParticle);
+    }
+
+    function step() {
+      context.clearRect(0, 0, width, height);
+
+      for (const particle of particles) {
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        if (particle.x < 0 || particle.x > width) particle.vx *= -1;
+        if (particle.y < 0 || particle.y > height) particle.vy *= -1;
+      }
+
+      for (let i = 0; i < particles.length; i += 1) {
+        for (let j = i + 1; j < particles.length; j += 1) {
+          const a = particles[i]!;
+          const b = particles[j]!;
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance > maxDistance) continue;
+          const alpha = (1 - distance / maxDistance) * 0.13;
+          context.beginPath();
+          context.moveTo(a.x, a.y);
+          context.lineTo(b.x, b.y);
+          context.strokeStyle = `rgba(125, 211, 252, ${alpha})`;
+          context.lineWidth = 0.65;
+          context.stroke();
+        }
+      }
+
+      for (const particle of particles) {
+        context.beginPath();
+        context.arc(particle.x, particle.y, particle.r, 0, Math.PI * 2);
+        context.fillStyle = "rgba(165, 243, 252, 0.22)";
+        context.fill();
+      }
+
+      animationId = window.requestAnimationFrame(step);
+    }
+
+    init();
+    step();
+
+    window.addEventListener("resize", init);
+    return () => {
+      window.cancelAnimationFrame(animationId);
+      window.removeEventListener("resize", init);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 z-0 opacity-60"
+    />
+  );
+}
 
 export function StartupLanding() {
   const [scanIndex, setScanIndex] = useState(0);
@@ -143,13 +255,15 @@ export function StartupLanding() {
   }, []);
 
   return (
-    <div className="relative mx-[calc(50%-50vw)] -my-6 min-h-screen overflow-hidden bg-[#05070d] text-white">
+    <div className="relative mx-[calc(50%-50vw)] -my-6 min-h-screen w-screen max-w-[100vw] overflow-hidden bg-[#05070d] text-white">
+      <AmbientLines />
       <motion.div
         aria-hidden="true"
         style={{ y: cloudShift }}
         className="premium-cloud pointer-events-none absolute inset-x-0 top-0 h-[820px]"
       />
       <div aria-hidden="true" className="premium-grid pointer-events-none absolute inset-0" />
+      <div aria-hidden="true" className="grain-overlay pointer-events-none absolute inset-0" />
       <HeroSection
         refTarget={heroRef}
         headlineRef={headlineRef}
@@ -182,31 +296,40 @@ function HeroSection({
   return (
     <section
       ref={refTarget}
-      className="relative flex min-h-[760px] items-center px-4 py-16 sm:px-8 lg:min-h-[760px] lg:px-12"
+      className="relative z-10 flex min-h-[760px] w-full items-center px-4 py-16 sm:px-8 lg:min-h-[760px] lg:px-12"
     >
-      <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[minmax(0,1fr)_560px]">
+      <div aria-hidden="true" className="hero-glow" />
+      <div className="mx-auto grid w-full min-w-0 max-w-7xl items-center gap-12 lg:grid-cols-[minmax(0,1fr)_560px]">
         <motion.div
           style={{ y: heroLift }}
           initial={{ opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
-          className="max-w-3xl"
+          className="w-full min-w-0 max-w-[calc(100vw-2rem)] sm:max-w-3xl"
         >
+          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs font-medium text-white/55 backdrop-blur">
+            <span className="h-1.5 w-1.5 rounded-full bg-cyan-200 shadow-[0_0_16px_rgba(103,232,249,0.9)]" />
+            Manufacturing command surface
+          </div>
           <h1
             ref={headlineRef}
-            className="max-w-4xl text-balance text-5xl font-semibold leading-[0.98] tracking-normal text-white sm:text-6xl lg:text-7xl"
+            aria-label="Manufacturing assets, tracked at line speed."
+            className="heading-display flex max-w-[calc(100vw-2rem)] flex-wrap gap-x-[0.18em] gap-y-1 text-3xl text-white sm:max-w-4xl sm:text-6xl lg:text-7xl"
           >
             {headlineWords.map((word) => (
               <span
                 key={word}
+                aria-hidden="true"
                 data-gsap-word
-                className="mr-[0.18em] inline-block will-change-transform"
+                className={`inline-block will-change-transform ${
+                  word === "line" || word === "speed." ? "text-gradient" : ""
+                }`}
               >
                 {word}
               </span>
             ))}
           </h1>
-          <p className="mt-7 max-w-2xl text-lg leading-8 text-slate-300 sm:text-xl">
+          <p className="mt-7 max-w-[calc(100vw-2rem)] text-lg leading-8 text-slate-300 sm:max-w-2xl sm:text-xl">
             A premium command layer for Cerebras manufacturing teams: scan assets
             in seconds, reconcile ops with facilities and finance, and turn every
             movement into an audit-ready event.
@@ -214,13 +337,13 @@ function HeroSection({
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/tech/receive"
-              className="inline-flex min-h-[48px] items-center justify-center rounded-md bg-white px-5 text-sm font-semibold text-slate-950 shadow-[0_0_40px_rgba(255,255,255,0.22)] transition hover:-translate-y-0.5 hover:bg-cyan-100"
+              className="btn-inset inline-flex min-h-[48px] items-center justify-center rounded-xl bg-white px-5 text-sm font-semibold text-slate-950 shadow-[0_0_40px_rgba(255,255,255,0.16)] transition hover:-translate-y-0.5 hover:bg-cyan-100"
             >
               Start scan workflow
             </Link>
             <Link
               href="/manager"
-              className="inline-flex min-h-[48px] items-center justify-center rounded-md border border-white/15 bg-white/5 px-5 text-sm font-semibold text-white backdrop-blur transition hover:-translate-y-0.5 hover:border-cyan-300/50 hover:bg-cyan-300/10"
+              className="btn-inset inline-flex min-h-[48px] items-center justify-center rounded-xl border border-white/15 bg-white/5 px-5 text-sm font-semibold text-white backdrop-blur transition hover:-translate-y-0.5 hover:border-cyan-300/50 hover:bg-cyan-300/10"
             >
               Open control tower
             </Link>
@@ -239,7 +362,7 @@ function HeroSection({
 
 function HeroMetric({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-md border border-white/10 bg-white/[0.04] p-4 backdrop-blur">
+    <div className="premium-glass stat-shimmer rounded-xl p-4">
       <div className="text-2xl font-semibold text-white">{value}</div>
       <div className="mt-1 text-sm text-slate-400">{label}</div>
     </div>
@@ -252,10 +375,10 @@ function HeroConsole({ activeScan }: { activeScan: ScanEvent }) {
       initial={{ opacity: 0, y: 28, rotateX: 6 }}
       animate={{ opacity: 1, y: 0, rotateX: 0 }}
       transition={{ delay: 0.15, duration: 0.8, ease: "easeOut" }}
-      className="relative mx-auto w-full max-w-[560px]"
+      className="relative mx-auto w-full min-w-0 max-w-[calc(100vw-2rem)] sm:max-w-[560px]"
     >
       <div className="absolute -inset-6 rounded-[2rem] bg-cyan-400/10 blur-3xl" />
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/80 p-4 shadow-2xl shadow-cyan-950/40 backdrop-blur-xl">
+      <div className="premium-glass stat-shimmer relative overflow-hidden rounded-2xl p-4 shadow-2xl shadow-cyan-950/40">
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
           <div>
             <div className="text-sm font-semibold text-white">AssetOps live</div>
@@ -268,7 +391,7 @@ function HeroConsole({ activeScan }: { activeScan: ScanEvent }) {
         </div>
 
         <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_0.75fr]">
-          <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
+          <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
             <div className="relative min-h-[216px] overflow-hidden rounded-lg border border-white/10 bg-[#050b13] p-4">
               <div className="scan-beam absolute inset-x-4 top-5 h-px bg-cyan-200" />
               <div className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200">
@@ -296,7 +419,7 @@ function HeroConsole({ activeScan }: { activeScan: ScanEvent }) {
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
-                className="rounded-xl border border-white/10 bg-white/[0.06] p-3 backdrop-blur"
+                className="premium-glass rounded-xl p-3"
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-mono text-sm font-semibold text-white">
@@ -327,7 +450,7 @@ function ScanLine({ label, value }: { label: string; value: string }) {
 
 function ProductStrip() {
   return (
-    <section className="relative border-y border-white/10 bg-white/[0.03] px-4 py-5 sm:px-8 lg:px-12">
+    <section className="relative z-10 border-y border-white/10 bg-black/30 px-4 py-5 backdrop-blur-md sm:px-8 lg:px-12">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-slate-300 md:flex-row md:items-center md:justify-between">
         <span className="font-semibold text-white">Built for the challenge surface</span>
         <div className="flex flex-wrap gap-3">
@@ -335,7 +458,7 @@ function ProductStrip() {
             (item) => (
               <span
                 key={item}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1"
+                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 transition hover:border-cyan-200/30 hover:text-white"
               >
                 {item}
               </span>
@@ -349,7 +472,7 @@ function ProductStrip() {
 
 function StorySections() {
   return (
-    <section id="story" className="relative px-4 py-24 sm:px-8 lg:px-12">
+    <section id="story" className="relative z-10 px-4 py-24 sm:px-8 lg:px-12">
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.85fr_1.15fr]">
         <div className="lg:sticky lg:top-24 lg:h-fit">
           <Reveal>
@@ -366,7 +489,7 @@ function StorySections() {
         <div className="space-y-5">
           {storySections.map((section, index) => (
             <Reveal key={section.title} delay={index * 0.08}>
-              <article className="min-h-[280px] rounded-2xl border border-white/10 bg-white/[0.05] p-6 shadow-2xl shadow-black/20 backdrop-blur">
+              <article className="premium-glass stat-shimmer min-h-[280px] rounded-2xl p-6 shadow-2xl shadow-black/20">
                 <div className="flex items-start justify-between gap-6">
                   <div>
                     <h3 className="text-2xl font-semibold text-white">{section.title}</h3>
@@ -394,7 +517,7 @@ function StorySections() {
 
 function DashboardSection() {
   return (
-    <section id="dashboard" className="relative px-4 py-24 sm:px-8 lg:px-12">
+    <section id="dashboard" className="relative z-10 px-4 py-24 sm:px-8 lg:px-12">
       <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
         <Reveal>
           <DashboardPreview />
@@ -413,13 +536,13 @@ function DashboardSection() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/manager"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-md bg-cyan-200 px-5 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-white"
+                className="btn-inset inline-flex min-h-[48px] items-center justify-center rounded-xl bg-cyan-200 px-5 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-white"
               >
                 View dashboard
               </Link>
               <Link
                 href="/manager/reconcile"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-md border border-white/15 bg-white/5 px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
+                className="btn-inset inline-flex min-h-[48px] items-center justify-center rounded-xl border border-white/15 bg-white/5 px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
               >
                 Open reconciliation
               </Link>
@@ -433,7 +556,7 @@ function DashboardSection() {
 
 function DashboardPreview() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/80 shadow-2xl shadow-cyan-950/30">
+    <div className="premium-glass stat-shimmer overflow-hidden rounded-2xl shadow-2xl shadow-cyan-950/30">
       <div className="border-b border-white/10 bg-white/[0.04] px-5 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -499,7 +622,7 @@ function DashboardPreview() {
 
 function WorkflowSection() {
   return (
-    <section id="product" className="relative px-4 py-24 sm:px-8 lg:px-12">
+    <section id="product" className="relative z-10 px-4 py-24 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-7xl">
         <Reveal>
           <div className="max-w-3xl">
@@ -518,7 +641,7 @@ function WorkflowSection() {
             <Reveal key={item.href} delay={index * 0.06}>
               <Link
                 href={item.href}
-                className="group block min-h-[220px] rounded-2xl border border-white/10 bg-white/[0.045] p-6 transition hover:-translate-y-1 hover:border-cyan-200/40 hover:bg-cyan-200/[0.07]"
+                className="premium-glass stat-shimmer group block min-h-[220px] rounded-2xl p-6 transition hover:-translate-y-1 hover:border-cyan-200/40 hover:bg-cyan-200/[0.07]"
               >
                 <div className="flex h-full flex-col justify-between gap-8">
                   <div>
@@ -543,9 +666,9 @@ function WorkflowSection() {
 
 function FinalCta() {
   return (
-    <section className="relative px-4 pb-24 pt-10 sm:px-8 lg:px-12">
+    <section className="relative z-10 px-4 pb-24 pt-10 sm:px-8 lg:px-12">
       <Reveal>
-        <div className="mx-auto grid max-w-7xl gap-8 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] p-6 shadow-2xl shadow-black/20 backdrop-blur lg:grid-cols-[1fr_420px] lg:p-10">
+        <div className="premium-glass stat-shimmer mx-auto grid max-w-7xl gap-8 overflow-hidden rounded-2xl p-6 shadow-2xl shadow-black/20 lg:grid-cols-[1fr_420px] lg:p-10">
           <div>
             <h2 className="max-w-3xl text-4xl font-semibold leading-tight text-white sm:text-5xl">
               Ready for manufacturing review, not just a demo screen.
@@ -557,13 +680,13 @@ function FinalCta() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/tech"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-md bg-white px-5 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-100"
+                className="btn-inset inline-flex min-h-[48px] items-center justify-center rounded-xl bg-white px-5 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-100"
               >
                 Enter technician console
               </Link>
               <Link
                 href="/dev/barcodes"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-md border border-white/15 bg-white/5 px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
+                className="btn-inset inline-flex min-h-[48px] items-center justify-center rounded-xl border border-white/15 bg-white/5 px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
               >
                 Print test barcodes
               </Link>

@@ -6,6 +6,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "AssetOps for Cerebras manufacturing",
   description: "Premium manufacturing asset tracking workflows.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -17,11 +20,11 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <header className="sticky top-0 z-50 border-b border-white/10 bg-[#05070d]/88 text-white backdrop-blur-xl">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
-            <Link href="/" className="font-semibold tracking-normal text-white">
+          <div className="mx-auto flex w-full min-w-0 max-w-7xl items-center justify-between gap-3 px-4 py-3">
+            <Link href="/" className="shrink-0 font-semibold tracking-normal text-white">
               AssetOps
             </Link>
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 shrink-0 items-center gap-3">
               <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
                 <HeaderLink href="/tech">Tech</HeaderLink>
                 <HeaderLink href="/manager">Manager</HeaderLink>
