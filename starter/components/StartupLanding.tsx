@@ -130,14 +130,14 @@ export function StartupLanding() {
     const words = headlineRef.current.querySelectorAll("[data-gsap-word]");
     gsap.fromTo(
       words,
-      { autoAlpha: 0, y: 28, filter: "blur(10px)" },
+      { autoAlpha: 0, y: 18, filter: "blur(2px)" },
       {
         autoAlpha: 1,
         y: 0,
         filter: "blur(0px)",
-        duration: 0.9,
+        duration: 0.52,
         ease: "power3.out",
-        stagger: 0.055,
+        stagger: 0.035,
       },
     );
   }, []);
