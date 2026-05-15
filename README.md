@@ -2,6 +2,31 @@
 
 This is my submission for the manufacturing AI builder challenge. The hosted API in `api/` is unchanged. Everything I built lives in `starter/`.
 
+## Reviewer quick read
+
+This is not a generic inventory dashboard. I treated the challenge as a traceability product for two impatient users:
+
+- A technician with a scanner in one hand who needs the next correct scan, not a form.
+- A manager with 60 seconds before standup who needs the first exception, its owner, and the evidence trail.
+
+The three highest-signal surfaces to review are:
+
+| Route | Why it matters |
+|---|---|
+| `/tech/receive`, `/tech/store`, `/tech/deploy`, `/tech/transfer` | Scanner-first workflows with autofocus, two-step scan confirmation, idempotent receive, explicit failure recovery, and camera fallback. |
+| `/manager` | A standup brief, action metrics, first exceptions, filters, and a paginated asset table. The top of the page answers "what do I say in the room?" before it asks anyone to search. |
+| `/manager/reconcile` and `/api/reconcile` | Server-side three-system join. Differences are categorized into "Fix today", "Needs a human", and "Probably fine" instead of being shown as a raw diff. |
+
+## Final polish pass: outside references used
+
+I used outside references as product pressure, not as copy-paste decoration:
+
+- The official challenge brief says they value judgment, microcopy, README quality, and what I chose not to build as much as code. That is why this README is deliberately decision-heavy.
+- GS1 traceability guidance frames useful event data around who, what, when, where, and why. I used that to sharpen the manager "standup brief" and event-log language.
+- Shelf.nu's open-source asset-management README emphasizes QR/barcode tags, custody tracking, location hierarchy, audit trails, search, and scanner bulk actions. Those became the product checklist I used to decide what belonged in the prototype and what did not.
+- shadcn/ui and Magic UI pushed the component direction: copyable, accessible primitives, bento-style information grouping, animated lists, and subtle motion that still feels like a tool.
+- Aceternity's component catalog was useful mainly as a warning label: big background effects are eye-catching, but the challenge rewards taste under operational constraints, so the final product keeps the heavier motion on the landing page and leaves `/tech/*` predictable.
+
 ## Running it locally
 
 ```bash
@@ -37,7 +62,7 @@ The keyboard scanner is the primary path. Camera scanning is available as a fall
 
 ### Manager: the control tower
 
-`/manager` is action-first. The first thing a manager sees when the page loads is four metric tiles: filtered, critical, review, clean. Critical, review, and clean are color-tinted (red, amber, green) so the eye lands on the wrong-looking number first. Below the tiles is a "first actions" panel that shows the top three reconciliation items, because a manager opening this page at 8:55am before standup needs to know what to act on before they need to know what is fine.
+`/manager` is action-first. The first thing a manager sees is a "60-second standup brief": the top exception, its owner, why it matters, and a link to the evidence. Under that are four metric tiles: filtered, critical, review, clean. Critical, review, and clean are color-tinted (red, amber, green) so the eye lands on the wrong-looking number first. Next to the tiles is a "first actions" panel that shows the top three reconciliation items, because a manager opening this page at 8:55am before standup needs to know what to act on before they need to know what is fine.
 
 The filter form is below the action surface. The asset table is below that. Pagination is server-side via query params, so the URL is shareable and the back button works.
 
@@ -117,7 +142,7 @@ The brief invites pushback and says it is a positive signal. So here is mine, ho
 
 **The deploy operation is not transactional.** The ops scan commits before the facilities and finance writes. If those subsequent writes fail, the ops state has already moved forward without them. In a real production system this needs either an outbox pattern, a compensating write, or a two-phase commit, and the brief acknowledges that backend hardening is out of scope. I left the partial-write window in place. The risk is that a manager could see an asset's state as `in_service` while finance still says `pending_receipt`, with no way to know from the UI which write failed. I would flag this as the next thing to harden after the prototype.
 
-**`/v1/reset` clears the mock writes along with everything else.** That is documented, but it is the kind of thing you can forget about thirty seconds before recording a Loom. Worth a small reminder on the `/dev/barcodes` page next to the print button. I did not build that reminder, but I should have.
+**`/v1/reset` clears the mock writes along with everything else.** That is documented, but it is the kind of thing you can forget about thirty seconds before recording a Loom. I added the reminder directly to `/dev/barcodes`, because that page is the reviewer's test surface and the right place to keep the reset habit visible.
 
 ## What I chose not to build
 

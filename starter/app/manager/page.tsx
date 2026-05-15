@@ -89,6 +89,14 @@ export default async function ManagerLandingPage({
         </Link>
       </header>
 
+      <StandupBrief
+        topItem={reconcileReport.items[0]}
+        criticalCount={reconcileReport.summary.critical}
+        reviewCount={reconcileReport.summary.review}
+        watchCount={reconcileReport.summary.watch}
+        cleanCount={reconcileReport.totals.clean_ops_assets}
+      />
+
       <section className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="grid items-start gap-3 sm:grid-cols-4">
           <Metric label="Filtered" value={filtered.length.toString()} delay={0} />
@@ -272,6 +280,99 @@ export default async function ManagerLandingPage({
           <PageLink label="Next" disabled={currentPage >= pageCount} params={nextParams} page={currentPage + 1} />
         </div>
       </div>
+    </div>
+  );
+}
+
+function StandupBrief({
+  topItem,
+  criticalCount,
+  reviewCount,
+  watchCount,
+  cleanCount,
+}: {
+  topItem?: ReconcileItem;
+  criticalCount: number;
+  reviewCount: number;
+  watchCount: number;
+  cleanCount: number;
+}) {
+  if (!topItem) {
+    return (
+      <section className="rounded-xl border border-emerald-300/20 bg-emerald-300/[0.035] p-5">
+        <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-emerald-200/75">
+          60-second standup brief
+        </div>
+        <div className="mt-3 text-2xl font-medium text-white">No exceptions need the room.</div>
+        <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-[var(--text-dim)]">
+          Clean inventory can stay quiet. Use the table below for lookup, not triage.
+        </p>
+      </section>
+    );
+  }
+
+  const tone =
+    topItem.severity === "critical"
+      ? "border-rose-300/25 bg-rose-300/[0.045]"
+      : topItem.severity === "review"
+        ? "border-amber-300/25 bg-amber-300/[0.045]"
+        : "border-violet-300/25 bg-violet-300/[0.045]";
+  const evidenceHref = topItem.ops ? `/manager/assets/${topItem.tag}` : "/manager/reconcile";
+
+  return (
+    <section className={`rounded-xl border p-5 ${tone}`}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-3xl">
+          <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
+            60-second standup brief
+          </div>
+          <h2 className="mt-3 text-2xl font-medium leading-tight text-white sm:text-3xl">
+            Start with <span className="font-mono">{topItem.tag}</span>: {topItem.title.toLowerCase()}.
+          </h2>
+          <p className="mt-3 max-w-2xl text-[13.5px] leading-relaxed text-[var(--text-dim)]">
+            {topItem.recommendation}
+          </p>
+        </div>
+        <Link
+          href={evidenceHref}
+          className="inline-flex h-10 shrink-0 items-center rounded-lg bg-white px-4 text-sm font-medium text-[#0a0a0a] transition hover:bg-white/90"
+        >
+          Open evidence
+        </Link>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-4">
+        <BriefFact label="Owner" value={topItem.owner} />
+        <BriefFact label="Problem type" value={topItem.category} />
+        <BriefFact
+          label="Why it matters"
+          value={topItem.details[0] ?? "The systems disagree."}
+          wide
+        />
+        <BriefFact
+          label="Quiet inventory"
+          value={`${cleanCount} clean · ${watchCount} watch · ${reviewCount} review · ${criticalCount} fix today`}
+        />
+      </div>
+    </section>
+  );
+}
+
+function BriefFact({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value: string;
+  wide?: boolean;
+}) {
+  return (
+    <div className={`rounded-lg border hairline bg-black/15 px-3 py-2 ${wide ? "md:col-span-2" : ""}`}>
+      <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--text-mute)]">
+        {label}
+      </div>
+      <div className="mt-1 text-[12.5px] leading-snug text-white">{value}</div>
     </div>
   );
 }

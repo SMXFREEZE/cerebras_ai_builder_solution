@@ -55,6 +55,15 @@ export default function BarcodePage() {
         </div>
       </header>
 
+      <section className="rounded-xl border border-cyan-200/15 bg-cyan-200/[0.035] p-4 print:hidden">
+        <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-cyan-100/65">
+          Before the Loom
+        </div>
+        <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--text-dim)]">
+          Run <code className="font-mono text-cyan-100">POST /v1/reset</code> before recording if you want the seeded drift cases back to a clean baseline. The reset also clears deploy writebacks in the facilities and finance mocks.
+        </p>
+      </section>
+
       {GROUPS.map((group) => {
         const items = CODES.filter((c) => c.group === group);
         return (
