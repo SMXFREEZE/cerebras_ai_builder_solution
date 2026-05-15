@@ -5,6 +5,7 @@ Submission frontend for the manufacturing AI builder challenge. The backend in
 
 ## What is built
 
+- `/`: premium YC/SaaS-style product landing page with a dark animated hero, moving cloud/grid background, live scan simulation, floating asset cards, dashboard preview, sticky storytelling sections, Framer Motion reveals, and GSAP headline animation.
 - `/tech/receive`, `/tech/store`, `/tech/deploy`, `/tech/transfer`: mobile-first scan flows with keyboard-scanner input, optional camera scanning through the browser `BarcodeDetector`, recovery states, and clear API error surfacing.
 - `/manager`: paginated/filterable asset list with state, site, custodian, and free-text search.
 - `/manager/assets/[tag]`: current asset detail plus newest-first event log.
@@ -49,7 +50,7 @@ I used the supplied references as product/design checks rather than source code:
 - Shelf.nu pushed the scan experience toward explicit modes, duplicate feedback, and "what now?" recovery copy.
 - The shadcn/TailAdmin dashboard references pushed the manager home toward an action-first summary before the table.
 - The barcode scanner references pushed the camera flow to detect supported formats, stop streams on close, and keep the keyboard scanner as the reliable primary path.
-- The animation references were intentionally reduced to a small page-enter and scan-line treatment; this is an operations tool, not a portfolio site.
+- The animation references pushed the landing page toward a premium first impression, but the motion is still product-native: scan beam, floating asset cards, dashboard preview, parallax cloud/grid background, Framer Motion reveals, and GSAP headline text instead of portfolio spectacle.
 
 ## Three calls I nearly made the other way
 

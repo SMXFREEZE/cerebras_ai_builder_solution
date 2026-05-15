@@ -4,8 +4,8 @@ import { RoleSwitcher } from "@/components/RoleSwitcher";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Cerebras asset tracking",
-  description: "Manufacturing asset tracking workflows.",
+  title: "AssetOps for Cerebras manufacturing",
+  description: "Premium manufacturing asset tracking workflows.",
 };
 
 export default function RootLayout({
@@ -16,16 +16,42 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <header className="border-b border-gray-200 bg-white">
+        <header className="sticky top-0 z-50 border-b border-white/10 bg-[#05070d]/88 text-white backdrop-blur-xl">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
-            <Link href="/" className="font-semibold text-gray-950">
-              Cerebras assets
+            <Link href="/" className="font-semibold tracking-normal text-white">
+              AssetOps
             </Link>
-            <RoleSwitcher />
+            <div className="flex items-center gap-3">
+              <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+                <HeaderLink href="/tech">Tech</HeaderLink>
+                <HeaderLink href="/manager">Manager</HeaderLink>
+                <HeaderLink href="/manager/reconcile">Reconcile</HeaderLink>
+              </nav>
+              <RoleSwitcher />
+            </div>
           </div>
         </header>
-        <main className="page-enter mx-auto max-w-7xl px-4 py-6">{children}</main>
+        <main className="page-enter min-h-[calc(100vh-57px)] bg-slate-50 text-gray-900">
+          <div className="mx-auto max-w-7xl px-4 py-6">{children}</div>
+        </main>
       </body>
     </html>
+  );
+}
+
+function HeaderLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded-md px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/[0.06] hover:text-white"
+    >
+      {children}
+    </Link>
   );
 }
