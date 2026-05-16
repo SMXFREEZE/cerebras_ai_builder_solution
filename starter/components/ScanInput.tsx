@@ -26,9 +26,24 @@ export function ScanInput({
   const ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (autoFocus && ref.current && !disabled) {
-      ref.current.focus();
-    }
+    if (!autoFocus || disabled) return;
+
+    const focusScanner = () => {
+      const el = ref.current;
+      if (!el) return;
+      if (document.activeElement === el || !shouldKeepCurrentFocus(document.activeElement)) {
+        el.focus({ preventScroll: true });
+      }
+    };
+
+    focusScanner();
+    const raf = window.requestAnimationFrame(focusScanner);
+    const timer = window.setTimeout(focusScanner, 120);
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.clearTimeout(timer);
+    };
   }, [autoFocus, disabled]);
 
   // Keep focus on the scanner input — if the tech taps elsewhere, refocus on next keystroke.
@@ -65,6 +80,7 @@ export function ScanInput({
         ref={ref}
         type="text"
         inputMode="text"
+        autoFocus={autoFocus}
         autoComplete="off"
         autoCorrect="off"
         spellCheck={false}
