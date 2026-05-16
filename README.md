@@ -1,33 +1,46 @@
-# Cerebras asset tracking submission
+# AssetOps
 
-This is my submission for the manufacturing AI builder challenge. The hosted API in `api/` is unchanged. Everything I built lives in `starter/`.
+**A scanner-first asset control tower for Cerebras manufacturing.**
 
-## Reviewer quick read
+AssetOps keeps operations, facilities, and finance aligned from the same scan event. The product is built around two moments that decide whether an asset system works in the real world:
 
-This is not a generic inventory dashboard. I treated the challenge as a traceability product for two impatient users:
+- **11:00 PM at the dock:** a technician has gloves on, a scanner in one hand, and a 40 lb instrument in the other. The next correct scan should be obvious.
+- **8:55 AM before standup:** a manager has 60 seconds to understand what is drifting, who owns it, and which evidence supports the next action.
 
-- A technician with a scanner in one hand who needs the next correct scan, not a form.
-- A manager with 60 seconds before standup who needs the first exception, its owner, and the evidence trail.
+This is not a generic inventory CRUD dashboard. It is a prototype for manufacturing traceability: fast scan flows, explicit writebacks, forensic event history, and a reconciliation report that says what to do instead of dumping a raw diff.
 
-The three highest-signal surfaces to review are:
+## 60-second reviewer path
 
-| Route | Why it matters |
-|---|---|
-| `/tech/receive`, `/tech/store`, `/tech/deploy`, `/tech/transfer` | Scanner-first workflows with autofocus, two-step scan confirmation, idempotent receive, explicit failure recovery, and camera fallback. |
-| `/manager` | A standup brief, action metrics, first exceptions, filters, and a paginated asset table. The top of the page answers "what do I say in the room?" before it asks anyone to search. |
-| `/manager/reconcile` and `/api/reconcile` | Server-side three-system join. Differences are categorized into "Fix today", "Needs a human", and "Probably fine" instead of being shown as a raw diff. |
+If you only have a minute, click these in order:
 
-## Final polish pass: outside references used
+| Route | What to look for |
+| --- | --- |
+| `/` | Premium first impression: dark SaaS landing, Vanta fog, 3D asset graph, live event preview. |
+| `/tech/receive` | Scanner autofocus, camera fallback, idempotent duplicate receive, serial conflict recovery. |
+| `/tech/store` | Two-step asset -> shelf workflow with asset preview before mutation. |
+| `/tech/deploy` | Missing-RU validation, then deploy with facilities and finance writebacks. |
+| `/tech/transfer` | Two-sided custody handoff: logged-in user is implicit, receiving badge is explicit. |
+| `/manager` | Standup brief first, metrics second, searchable/paginated asset table after that. |
+| `/manager/assets/C0009001` | Full forensic event log, newest first. |
+| `/manager/reconcile` | Three-way ops/facilities/finance report with manager-language categories. |
+| `/dev/barcodes` | Printable Code 128 barcodes for happy path, drift, disposed, ghost, locations, and badges. |
 
-I used outside references as product pressure, not as copy-paste decoration:
+## What is included
 
-- The official challenge brief says they value judgment, microcopy, README quality, and what I chose not to build as much as code. That is why this README is deliberately decision-heavy.
-- GS1 traceability guidance frames useful event data around who, what, when, where, and why. I used that to sharpen the manager "standup brief" and event-log language.
-- Shelf.nu's open-source asset-management README emphasizes QR/barcode tags, custody tracking, location hierarchy, audit trails, search, and scanner bulk actions. Those became the product checklist I used to decide what belonged in the prototype and what did not.
-- shadcn/ui and Magic UI pushed the component direction: copyable, accessible primitives, bento-style information grouping, animated lists, and subtle motion that still feels like a tool.
-- Aceternity's component catalog was useful mainly as a warning label: big background effects are eye-catching, but the challenge rewards taste under operational constraints, so the final product keeps the heavier motion on the landing page and leaves `/tech/*` predictable.
+| Area | Implementation |
+| --- | --- |
+| Tech scan UX | Four scanner-first workflows under `/tech`: receive, store, deploy, transfer. |
+| Barcode support | Keyboard scanner path is primary. Camera scanner is a progressive enhancement fallback. |
+| Writebacks | Deploy writes facilities + finance. Store from `in_service` clears facilities. Other scans do not write. |
+| Reconciliation | Server-side route handler at `/api/reconcile` joins operations, facilities, and finance. |
+| Manager dashboard | Standup brief, first actions, metrics, filters, pagination, asset detail, event log. |
+| Token safety | Browser never receives `API_TOKEN`; all upstream calls go through server-side Next routes. |
+| Testing surface | `/dev/barcodes` ships scannable examples for the interesting review scenarios. |
+| Polish | Vanta fog background, 3D hero scene, fast scanner flows, mobile-safe tech route. |
 
-## Running it locally
+The hosted API in `api/` is kept as the challenge foundation. The product work lives in `starter/`.
+
+## Run locally
 
 ```bash
 pnpm install
@@ -35,161 +48,332 @@ cp starter/.env.example starter/.env.local
 pnpm dev
 ```
 
-The API comes up on port 8080, the app on port 3000. The default dev token in `.env.example` is fine for local work:
+Ports:
 
+```text
+API:  http://localhost:8080
+App:  http://localhost:3000
 ```
+
+Default local environment:
+
+```text
 API_BASE_URL=http://localhost:8080/v1
 API_TOKEN=local-dev-token-1234567890
 ```
 
-I want to be explicit about how the token is handled, because the brief asked for an explanation of where mutations live. `API_TOKEN` is server-only. There is no `NEXT_PUBLIC_` version of it anywhere in the code. The browser never touches the upstream API directly. Instead, browser requests go through two same-origin proxies inside the Next app: `/api/upstream/*` for the read-only GETs, and `/api/workflows/[action]` for the four scan mutations. Both run on the server, both attach the token from `process.env.API_TOKEN`, and neither one accepts a token from the client. So if you open DevTools and watch network traffic, you will never see the bearer token. That was a deliberate choice and the rest of this README explains some of the reasoning behind it.
+Reset before a demo or Loom:
 
-## What I built
+```bash
+curl -X POST http://localhost:3000/api/upstream/reset
+```
 
-### Tech: the four scan workflows
+## Validation I ran
 
-These are the screens at `/tech/receive`, `/tech/store`, `/tech/deploy`, `/tech/transfer`. The brief asks you to imagine a tech at 11pm in a cold dock bay, gloves on, scanner in one hand, holding a 40lb instrument with the other. I built for that person specifically.
+```bash
+pnpm lint
+pnpm test
+pnpm --filter @asset-tracking/starter typecheck
+pnpm build
+```
 
-Concretely, here is what that meant for the UI:
+Last full local QA pass:
 
-1. The scan input is a single 20px monospace field that autofocuses on page load. It also refocuses on any keystroke if focus drifts away. So if the tech taps somewhere by accident, or a modal closes, or anything else steals focus, the very next keystroke from the handheld scanner still goes into the right place. Focus loss in a scanner-first UI is a silent failure mode, and silent failures in a hot path are the worst kind.
+| Check | Result |
+| --- | --- |
+| API unit tests | 27 / 27 passed |
+| Starter tests | 13 / 13 passed |
+| Lint | Passed |
+| Typecheck | Passed |
+| Production build | Passed |
+| Browser happy path | Passed |
+| Console/page errors | No unexpected errors |
+| Runtime overlays | None |
+| Horizontal overflow | None on desktop or mobile receive |
 
-2. Store, deploy, and transfer are all two-step flows: scan the asset, then scan the destination (a shelf, a rack, or a receiving badge). Between those two steps, the page does a `GET /v1/assets/:tag` and renders the current state of whatever was scanned. The tech sees the asset they are about to mutate before they commit it. If they scanned the wrong tag, the wrong manufacturer or model or current location will show up and they will catch it before the second scan triggers the write.
+Browser happy path covered:
 
-3. Success and error responses are visually distinct in a way you can read at a glance. Success has a green border, a check icon, and a one-line summary plus a list of any downstream writes that happened. Errors have a red border, a single-line message, the error code in monospace next to it, and a microcopy line that says "Nothing was written." I want a tired human to be able to look at the screen and immediately know whether the API moved or not. The error code is there for me when I am debugging, not for the tech.
+1. Reset namespace.
+2. Home renders Vanta fog plus 3D hero scene.
+3. Barcode sheet renders printable scannable codes.
+4. Receive fresh asset `C0009001`.
+5. Duplicate receive logs `duplicate_receive` without failing.
+6. Different serial on same tag shows a conflict with both serials.
+7. Store `C0009001` to shelf.
+8. Deploy with missing RU shows a local validation error.
+9. Deploy with complete rack/RU writes facilities and finance.
+10. Transfer custody to `tech-mike`; state remains `in_service`.
+11. Manager list finds the asset.
+12. Asset detail shows newest-first event history.
+13. Reconciliation no longer flags the deployed asset as drift.
+14. Mobile receive keeps the scanner input focused and camera button reachable.
 
-The keyboard scanner is the primary path. Camera scanning is available as a fallback via the `<CameraScanButton>` component, but I did not build the page around it. More on that in the trade-offs section.
+Final verified asset state after the happy path:
 
-### Manager: the control tower
+```json
+{
+  "asset_tag": "C0009001",
+  "state": "in_service",
+  "location": {
+    "site": "Lab-Building-A",
+    "room": "Bay-12",
+    "row": "Aisle-3",
+    "rack": "B-04",
+    "ru": "U21"
+  },
+  "custodian": "tech-mike"
+}
+```
 
-`/manager` is action-first. The first thing a manager sees is a "60-second standup brief": the top exception, its owner, why it matters, and a link to the evidence. Under that are four metric tiles: filtered, critical, review, clean. Critical, review, and clean are color-tinted (red, amber, green) so the eye lands on the wrong-looking number first. Next to the tiles is a "first actions" panel that shows the top three reconciliation items, because a manager opening this page at 8:55am before standup needs to know what to act on before they need to know what is fine.
+Event log included:
 
-The filter form is below the action surface. The asset table is below that. Pagination is server-side via query params, so the URL is shareable and the back button works.
+```text
+receive
+duplicate_receive
+store
+deploy
+transfer_custody
+```
 
-`/manager/assets/[tag]` is the asset detail page. The brief calls the event log "the manager's main forensic tool," so I made sure it renders newest-first with the full payload visible.
+## Product philosophy
 
-### Reconciliation
+Asset systems fail when the product asks the wrong person to hold too much context.
 
-`/api/reconcile` is a server-side route handler that pulls ops, facilities, and finance, joins them by asset tag, and classifies each row. Three buckets, three labels. The original labels in the API are `critical`, `review`, and `watch`. I kept those internally but renamed them in the UI to **Fix today**, **Needs a human**, and **Probably fine**.
+For the technician, the app should answer:
 
-That rename is one of the three calls I want to talk about below. The short version: the brief says the audience for this page is a non-technical asset manager who runs the report every Monday. "Critical" makes a manager guess what they are supposed to do about it. "Fix today" tells them.
+- What do I scan next?
+- Did the write happen?
+- If it failed, was anything written?
+- Can I recover without opening another page?
 
-The route returns a structured report so the page is a thin renderer. The join logic and the classification rules live on the server because the bearer token cannot be in the browser bundle, and because if someone wants to add tests for the reconciliation logic later, the route is the place to do it.
+For the manager, the app should answer:
 
-### The barcode sheet
+- What should I say in standup?
+- Which assets need action today?
+- Which differences are expected noise?
+- What evidence trail supports the action?
 
-`/dev/barcodes` is the testing surface. The brief asks for "barcodes we can actually scan" covering interesting cases. I went past the bare minimum and made each barcode card explain what the code is for, so reviewers can see the testing matrix in one glance:
+Every major UI choice comes back to those questions.
 
-- A fresh asset tag (happy path receive)
-- Two seeded assets with known drift (one rack mismatch flagged critical, one RMA case flagged review)
-- A disposed asset (every scan rejects with `invalid_transition`)
-- A ghost asset that exists in the finance mock but not in ops (receive returns 404)
-- A complete deploy location (site, room, row, rack, RU)
-- A deploy location missing the RU (triggers `incomplete_deploy_location`)
-- Three badges for the transfer flow
+## Tech scan workflows
 
-The page chrome is dark, but each individual barcode card stays on a white background. That was deliberate. Code 128 needs the contrast to scan reliably. There is also a print button at the top.
+The four `/tech` screens share the same design grammar:
 
-### Landing
+- A large monospace scan input.
+- Autofocus on entry, with a second focus pass after paint.
+- Refocus on the next scanner keystroke if focus drifts away.
+- Camera button next to the scanner field as a fallback.
+- Step dots that say where the technician is in the flow.
+- Green success panel when a write completed.
+- Red error panel when nothing was written.
 
-The route at `/` is a marketing landing page with a dark hero, a 3D wireframe in the right column, a live event log preview, and a few sections describing the product. It is not the product. It is the first thing a reviewer sees, so it needs to set tone, but I tried not to confuse polish for substance. The actual product is everything past the header.
+Store, deploy, and transfer are intentionally two-step:
+
+```text
+scan asset -> preview current asset -> scan destination/badge -> write
+```
+
+That middle preview is not decoration. It catches wrong-tag mistakes before the second scan mutates state.
+
+## Manager dashboard
+
+The manager page starts with a standup brief instead of a table.
+
+The table is still there, with server-side filtering and pagination, but it is not the first thing on the screen. A manager opening the product cold needs the highest-priority exception, the owner, and the reason it matters. Search and filtering can wait until after that context exists.
+
+The asset detail page treats the event log as the forensic source of truth. It renders the current state first, then the newest-first event stream with scan payloads and state/location changes visible.
+
+## Reconciliation model
+
+`/api/reconcile` pulls:
+
+- Operations assets from the API.
+- Facilities rack rows from the mock facilities system.
+- Finance equipment rows from the mock ERP system.
+
+It joins by tag, then classifies differences. The internal severity values remain:
+
+```text
+critical
+review
+watch
+clean
+```
+
+The manager UI translates those into action labels:
+
+```text
+Fix today
+Needs a human
+Probably fine
+Clean
+```
+
+That translation is deliberate. A non-technical asset manager should not need to know the taxonomy to understand the next action.
+
+## Where writes live
+
+Writes live in the server route handler:
+
+```text
+starter/app/api/workflows/[action]/route.ts
+```
+
+The browser calls:
+
+```text
+/api/workflows/receive
+/api/workflows/store
+/api/workflows/deploy
+/api/workflows/transfer
+```
+
+The route handler then calls the upstream API with the server-only bearer token.
+
+Why server-side?
+
+1. **Token safety:** the bearer token never enters the browser bundle or DevTools network panel.
+2. **One user action, multiple writes:** deploy is one user action that writes ops, facilities, and finance.
+3. **Meaningful success copy:** the server returns side-effect lines based on what actually completed.
+4. **Auditability:** partial-write behavior is centralized instead of being spread across client components.
+
+Write rules implemented:
+
+| Scan | Operations | Facilities | Finance |
+| --- | --- | --- | --- |
+| Receive | Create/return asset | No write | No write |
+| Duplicate receive | Log duplicate event | No write | No write |
+| Store from `received` | Move to stored | No write | No write |
+| Store from `in_service` | Move to stored | Clear rack row | No write |
+| Deploy | Move to in service | Write rack row | Capitalize |
+| Transfer | Change custodian | No write | No write |
 
 ## Three calls I nearly made the other way
 
-### 1. Fetching the asset between step 1 and step 2 of store, deploy, and transfer
+### 1. Fetch current asset state between scan step 1 and scan step 2
 
-The alternative was to skip the GET. The asset would still be validated by the API on the second scan, and if it was the wrong tag or in the wrong state, the API would reject the write with a clear error. That is a perfectly defensible design.
+The simpler version would skip the preview. Scan the asset, scan the shelf or badge, let the API validate, and show the response.
 
-I added the GET anyway, and here is why. The round-trip to the API is something like 30 milliseconds on a local network. The round-trip for the human, meaning the tech walking back to the rack to recheck what they scanned, is several minutes. Showing the asset's current state right after the first scan catches wrong-tag mistakes at the point in time where the fix is still cheap. The tech sees "you scanned C0000108, which is currently rma_pending in BAY-12, custodian tech-mike" and they have a chance to go "wait, that is not what I meant to scan" before the destination scan triggers the write.
+I added the preview anyway. The extra API round trip is cheap. The human round trip back to the dock or rack is not. If the technician scans the wrong tag, the preview shows the model, current state, custodian, and location before a write occurs. That is the cheapest moment to catch the mistake.
 
-The trade-off I am absorbing is one extra round-trip per workflow. I decided that was worth it for the hot path. If I were building this for a network where the API call cost real money or real latency, I would reconsider.
+Trade-off: one extra GET per store/deploy/transfer flow.
 
-### 2. Renaming the severity buckets on the reconcile page
+Decision: worth it for a hot-path physical workflow.
 
-The reconcile API returns severity as one of `critical`, `review`, or `watch`. I kept those names internally everywhere they appear in the data layer. But in the manager UI I renamed them to **Fix today**, **Needs a human**, and **Probably fine**.
+### 2. Use manager-language reconciliation labels
 
-The alternative was to keep the engineering labels. They are more precise. "Critical" has a specific meaning, and a person familiar with the system can tell you exactly what makes something critical versus review.
+The API can expose precise labels like `critical`, `review`, and `watch`. Those are good engineering labels.
 
-But the brief is explicit about who reads this report. It says the audience is a non-technical asset manager who runs the report every Monday. That person does not need to know what makes something critical. They need to know whether to act on it. Engineering labels make them guess at the verb. "Fix today" is the verb.
+They are weaker manager labels.
 
-The trade-off is that the labels in the UI now differ from the labels in the JSON. Anyone reading the network tab or the API response sees one vocabulary, anyone reading the screen sees another. I decided that was acceptable because the API contract belongs to the upstream and I did not feel free to rewrite it. If I owned both sides I would rename the API too.
+The manager does not need to decode severity. They need to know what to do. So the UI says:
 
-### 3. Putting the writebacks in a server route handler instead of the client
+```text
+Fix today
+Needs a human
+Probably fine
+```
 
-The brief says I can put the writes wherever makes sense and asks me to explain it. The choices are: do the writes in the client right after the scan succeeds, do them in a Next API route, or do them on the upstream API itself.
+Trade-off: UI vocabulary differs from the JSON vocabulary.
 
-Upstream API was off the table. I do not own that surface.
+Decision: acceptable, because the API contract stays precise while the screen speaks to the person using it.
 
-Client-side is simpler. After the ops scan succeeds, fire a POST to the facilities mock, then fire a POST to the finance mock, then update the UI. The client already has the asset's location, so there is nothing to fetch. Two lines of code.
+### 3. Treat camera scanning as fallback, not the main path
 
-I went with the route handler at `/api/workflows/[action]` instead, for three reasons that all stack:
+The brief says keyboard scanner and phone camera should both feel native. I agree, but they are not equally reliable.
 
-First, the bearer token. Doing the writes in the client would mean the token has to be exposed to the browser, which violates the "token stays on the server" property I wanted. There are ways to avoid that, like having the client call the same-origin proxy for the writebacks too, but at that point you are already on the server side. Centralizing made the code clearer.
+A USB/Bluetooth scanner behaves like a keyboard. If the input is focused, the scan works.
 
-Second, the deploy operation is really one user-meaningful action that emits three writes: the ops scan, the facilities row, and the finance capitalization. If the second write fails after the first has already succeeded, the client either has to silently swallow the failure or expose the partial state. Either choice is bad. Putting the writes in one server function means the partial-failure mode is loggable and surfaceable in one place, not three.
+Camera scanning depends on browser support, permission state, lighting, autofocus, label print quality, and device performance. It is valuable, but it should not be the only happy path.
 
-Third, the side-effect summary that appears in the success panel ("Facilities rack assignment written. Finance capitalization written.") is generated by the server route based on what actually completed, not by the client guessing at what should have happened. If a future deploy fails to write to finance, the second line will be absent. That absence will be meaningful.
+Trade-off: the visual emphasis is on the keyboard scanner field, with camera beside it.
 
-The trade-off I am absorbing is a tiny bit more code on the server and a slightly slower deploy round-trip, because three sequential writes happen in series instead of in parallel from the client. I think the auditability win is worth that latency.
+Decision: correct for manufacturing. The most reliable path gets first-class treatment.
 
-## Pushback on the brief and the starter
+## Microcopy I would walk through in the Loom
 
-The brief invites pushback and says it is a positive signal. So here is mine, honestly.
+After a successful deploy, the success panel says:
 
-**Camera scanning is described as roughly equal to keyboard scanning. It is not.** A handheld USB or Bluetooth scanner is a keyboard emulator. It types into your input and presses Enter. There is essentially nothing for JavaScript to break. Browser camera scanning, on the other hand, depends on `BarcodeDetector` support (Chrome, mostly), lighting conditions, label print quality, the camera's autofocus speed, and whether the page has permission to use the camera at all. I built the keyboard path first-class and treated camera as a progressive enhancement. I would suggest the brief frame them that way.
+```text
+Facilities rack assignment written.
+Finance capitalization written.
+```
 
-**The location examples in the brief mix two schemas.** Storage locations look like `Site/Room/Shelf`, three parts. Deploy locations look like `Site/Room/Row/Rack/RU`, five parts. The starter helpers cover both, and the API will reject a deploy that is missing the RU. But a reader who only reads the brief might not realize that deploy is stricter than store. One additional sentence in the brief would catch this.
+It does not say "Success!" and stop there.
 
-**The deploy operation is not transactional.** The ops scan commits before the facilities and finance writes. If those subsequent writes fail, the ops state has already moved forward without them. In a real production system this needs either an outbox pattern, a compensating write, or a two-phase commit, and the brief acknowledges that backend hardening is out of scope. I left the partial-write window in place. The risk is that a manager could see an asset's state as `in_service` while finance still says `pending_receipt`, with no way to know from the UI which write failed. I would flag this as the next thing to harden after the prototype.
+Those lines name the two downstream systems that moved because of the scan. They are generated by the server workflow response, not hard-coded as generic optimism in the client.
 
-**`/v1/reset` clears the mock writes along with everything else.** That is documented, but it is the kind of thing you can forget about thirty seconds before recording a Loom. I added the reminder directly to `/dev/barcodes`, because that page is the reviewer's test surface and the right place to keep the reset habit visible.
+The important property is absence. If only one side effect completed in a future hardened version, the success panel would have one line instead of two. That missing line would be meaningful to a technician and to a manager reviewing drift later.
+
+Good operational microcopy should be diffable. It should tell a tired person exactly what changed.
+
+## Pushback on the brief and starter
+
+### Camera scanning is not equivalent to keyboard scanning
+
+Camera scanning is a useful fallback. Keyboard-emulated handheld scanners are the industrial default because they are boring and reliable. I would frame camera scanning as progressive enhancement in the brief.
+
+### Location schemas deserve one extra sentence
+
+Storage locations and deploy locations look similar, but deploy is stricter:
+
+```text
+store:  Site/Room/Shelf
+deploy: Site/Room/Row/Rack/RU
+```
+
+The API enforces this, but the brief could make the difference more explicit.
+
+### Deploy is not truly transactional
+
+Deploy commits the ops state before facilities and finance writebacks. In production I would add an outbox, retry queue, compensating write, or transaction boundary owned by the upstream service. For this prototype I centralized the side effects in the Next route handler and surface the completed side effects in the response.
 
 ## What I chose not to build
 
-Subtraction is a skill, per the brief. Here is what I decided was not worth building, with reasons:
+| Not built | Why |
+| --- | --- |
+| Offline scan queue | Offline writes without conflict resolution can create worse drift. The prototype should fail loudly instead. |
+| RMA UI | The state machine supports it, but the brief says it is not required. |
+| Full authentication | Out of scope; the cookie role switcher is enough to demo tech and manager perspectives. |
+| Bulk import/export | Not part of the core scan/reconcile challenge. |
+| Smooth scroll on tech screens | Native, predictable scroll is better for scanner-first tools. Motion belongs on the landing page, not the dock workflow. |
+| Custom barcode library | The starter Code 128 renderer works and keeps dependencies smaller. |
 
-**Offline scan queueing.** Out of scope explicitly. Also, offline queueing without conflict resolution creates more drift than it removes. If the tech scans a deploy at 11pm on a flaky connection, queues it locally, comes back online at 11:05pm, and submits, the asset might already be in a state where deploy is no longer valid. Now you have a queued action that needs human reconciliation. The right answer is to require connectivity for the write and fail loudly otherwise, which is what the current code does.
+## Files worth reviewing
 
-**Haptic and audio feedback on scan success.** The visual flash, the shake on error, and the step-dot progression cover the same "did it work?" signal without dragging in a sound library. A tech wearing earbuds or working in a noisy lab is not going to hear a beep anyway.
+| Path | Why it matters |
+| --- | --- |
+| `starter/components/TechWorkflows.tsx` | The four scanner workflows and their step-by-step UX. |
+| `starter/components/ScanInput.tsx` | Autofocus and scanner refocus behavior. Small file, high product impact. |
+| `starter/app/api/workflows/[action]/route.ts` | Server-side mutation orchestration and writeback rules. |
+| `starter/app/api/reconcile/route.ts` | Three-system join and report construction. |
+| `starter/components/ReconcileView.tsx` | Manager-language reconciliation UI. |
+| `starter/app/manager/page.tsx` | Standup-first manager information design. |
+| `starter/app/manager/assets/[tag]/page.tsx` | Forensic asset detail and event history. |
+| `starter/app/dev/barcodes/page.tsx` | Scannable review/test matrix. |
+| `starter/components/VantaFogBackground.tsx` | Lightweight animated background wrapper for the premium first impression. |
+| `starter/components/HeroScene.tsx` | 3D wireframe hero scene. |
 
-**A custom barcode renderer.** The starter ships `code128Svg`. It works. Switching to QR or another format would mean a dependency I do not need.
+## Outside references used
 
-**Smooth scroll on the technician routes.** I added Lenis for smooth scroll on the landing page. I deliberately did not extend it to `/tech/*`. Overriding native scroll on a scanner-first UI fights with focus management, and the tech screens are short enough that smooth scroll does not buy you anything. The landing page is a marketing surface where motion sells the product. The tech routes are a tool. Tools should be predictable.
+I used outside references as product pressure, not as copy-paste decoration:
 
-**RMA flow.** The brief says the state machine supports it but I do not need a UI for it. So I do not have one.
+- The challenge brief: judgment, microcopy, trade-offs, subtraction, pushback.
+- GS1-style traceability thinking: who, what, when, where, why.
+- Shelf.nu and asset-management references: custody, location hierarchy, QR/barcode tags, audit trails.
+- shadcn-style UI thinking: accessible primitives, clear composition, strong information hierarchy.
+- Modern SaaS references: Linear, Vercel, Ramp, Raycast, and YC startup landing patterns.
+- Vanta/Three.js references: motion as atmosphere on the landing page, not as friction in the tool.
 
-**Authentication.** Out of scope. The cookie-based role switcher in the header (tech-jane versus manager-paul) is enough to demo both perspectives.
+## Submission notes
 
-## One piece of microcopy I would walk through in the Loom
+Public repo:
 
-After a successful deploy, the success panel renders this:
+```text
+https://github.com/SMXFREEZE/cerebras_ai_builder_solution
+```
 
-> Facilities rack assignment written.
-> Finance capitalization written.
-
-Two lines, not one. Not a generic "Success!" or "Done." Each line names a specific system that the scan moved, and each line is generated by the server based on whether the write actually completed.
-
-Here is what I want a reviewer to notice about this. If a future deploy fails to write to finance but succeeds at facilities, the user-facing message will read:
-
-> Facilities rack assignment written.
-
-One line instead of two. The absence of the second line is meaningful. It is not just shorter, it is a different message. A tech reading the panel can see "wait, only one line, something dropped" and check the reconciliation report.
-
-I want success messages to be diffable against failure messages, not just shorter than them. This is the design property I care about most across the whole app.
-
-## Files worth a reviewer's time, in priority order
-
-| Path | What is interesting |
-|---|---|
-| `starter/components/TechWorkflows.tsx` | The four scan flows. Step-dot state machine UI, focus-stickiness on the input, asset preview round-trip between scans. |
-| `starter/components/ScanInput.tsx` | Small file, but the global `keydown` refocus listener is the call I expect questions on. |
-| `starter/app/api/workflows/[action]/route.ts` | Where the writebacks actually happen. Deploy emits both facilities and finance writes; store from `in_service` clears the facilities rack. |
-| `starter/app/api/reconcile/route.ts` | The three-way join. Classification rules live here. |
-| `starter/components/ReconcileView.tsx` | Severity rename, missing-cell tint, system-by-system layout. |
-| `starter/app/dev/barcodes/page.tsx` | The testing matrix, with explanatory notes on each barcode. |
-| `starter/app/manager/page.tsx` | Action-first information design. Metric tiles, first-actions panel, then the table. |
-
-## Original challenge docs
+Original challenge docs:
 
 - [`docs/CHALLENGE.md`](./docs/CHALLENGE.md)
 - [`starter/docs/api-reference.md`](./starter/docs/api-reference.md)
