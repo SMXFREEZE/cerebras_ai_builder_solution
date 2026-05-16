@@ -3,7 +3,7 @@ import {
   AbsoluteFill,
   Audio,
   Easing,
-  Img,
+  OffthreadVideo,
   Sequence,
   interpolate,
   staticFile,
@@ -14,208 +14,109 @@ export const LOOM_FPS = 30;
 export const LOOM_WIDTH = 1920;
 export const LOOM_HEIGHT = 1080;
 
-type LoomScene = {
-  id: string;
-  kind: "title" | "text" | "capture";
-  eyebrow: string;
-  title: string;
-  caption: string;
-  duration: number;
-  points?: string[];
-  image?: string;
-  focus?: [number, number];
-  zoom?: [number, number];
-};
-
 const seconds = (value: number) => value * LOOM_FPS;
 
-const scenes: LoomScene[] = [
+export const LOOM_DURATION_IN_FRAMES = seconds(264);
+
+type Chapter = {
+  start: number;
+  end: number;
+  eyebrow: string;
+  title: string;
+  body: string;
+  points: string[];
+};
+
+const chapters: Chapter[] = [
   {
-    id: "title",
-    kind: "title",
-    eyebrow: "Cerebras AI Builder Challenge",
-    title: "AssetOps",
-    caption:
-      "A scanner-first asset control tower for manufacturing teams that need operations, facilities, and finance to agree.",
-    duration: seconds(16),
-    points: ["What I built", "One tradeoff", "One microcopy call"],
+    start: 0,
+    end: 24,
+    eyebrow: "Proof, not slides",
+    title: "Live app walkthrough after reset",
+    body: "Playwright drives the real app from the landing page, so the demo starts with the actual product surface instead of a deck.",
+    points: ["No static mockup", "Browser video captured from localhost", "Every major challenge surface appears"],
   },
   {
-    id: "problem",
-    kind: "text",
-    eyebrow: "Problem",
-    title: "Every missed scan becomes drift.",
-    caption:
-      "Operations owns state, facilities owns rack position, and finance owns capitalization. AssetOps turns one physical scan into aligned records.",
-    duration: seconds(18),
-    points: ["Techs need low-friction scans", "Managers need action, not raw diffs"],
+    start: 24,
+    end: 45,
+    eyebrow: "Technician map",
+    title: "Four flows, scoped writes",
+    body: "Receive, store, deploy, and transfer each announce what they write so the technician can trust the action.",
+    points: ["Receive writes ops", "Deploy writes all three systems", "Transfer only changes custody"],
   },
   {
-    id: "product",
-    kind: "capture",
-    eyebrow: "Product",
-    title: "Premium first impression",
-    caption:
-      "The landing view establishes the product, then quickly points reviewers to the real workflows.",
-    image: "01-home.png",
-    duration: seconds(16),
-    focus: [0.48, 0.48],
-    zoom: [1.01, 1.05],
-    points: ["Vanta fog atmosphere", "3D asset graph", "Live activity preview"],
+    start: 45,
+    end: 73,
+    eyebrow: "Receive",
+    title: "Fresh scan, duplicate safety, serial recovery",
+    body: "The dock flow captures item details, accepts a fresh tag, accepts the same tag again, then explains a serial conflict with both values visible.",
+    points: ["Scanner input stays focused", "Camera fallback exists", "Recovery copy is specific"],
   },
   {
-    id: "receive",
-    kind: "capture",
-    eyebrow: "Technician workflow",
-    title: "Receive is scanner-first",
-    caption:
-      "The scan input is focused by default; the camera path is a native fallback for phones.",
-    image: "03-receive-success.png",
-    duration: seconds(18),
-    focus: [0.52, 0.78],
-    zoom: [1.02, 1.08],
-    points: ["Autofocus and refocus", "Clear receipt state", "Duplicate receives are idempotent"],
+    start: 73,
+    end: 97,
+    eyebrow: "Store",
+    title: "Two-step move with asset preview",
+    body: "The preview is the product tradeoff: one cheap read prevents an expensive wrong-shelf walkback.",
+    points: ["Scan asset first", "Preview current state", "Then scan shelf"],
   },
   {
-    id: "conflict",
-    kind: "capture",
-    eyebrow: "Recovery",
-    title: "Confusing scans explain themselves",
-    caption:
-      "A serial conflict shows the old and new values so the technician can compare labels instead of guessing.",
-    image: "04-serial-conflict.png",
-    duration: seconds(18),
-    focus: [0.45, 0.82],
-    zoom: [1.02, 1.08],
-    points: ["No vague failure state", "Recovery path stays on screen"],
-  },
-  {
-    id: "validation",
-    kind: "capture",
+    start: 97,
+    end: 134,
     eyebrow: "Deploy",
-    title: "Bad deploys are blocked early",
-    caption:
-      "Missing RU is caught before any facilities or finance writeback can run.",
-    image: "05-deploy-missing-ru.png",
-    duration: seconds(19),
-    focus: [0.5, 0.78],
-    zoom: [1.02, 1.08],
-    points: ["Validate before side effects", "Keep failure local and obvious"],
+    title: "Validation before side effects",
+    body: "A missing rack unit is blocked before writebacks. A complete rack commits ops, facilities, and finance.",
+    points: ["Incomplete rack rejected", "Facilities rack assignment written", "Finance capitalization written"],
   },
   {
-    id: "microcopy",
-    kind: "capture",
-    eyebrow: "Microcopy",
-    title: "Facilities rack assignment written. Finance capitalization written.",
-    caption:
-      "This copy names the downstream systems that moved. It is stronger than a generic success message.",
-    image: "06-deploy-success.png",
-    duration: seconds(30),
-    focus: [0.51, 0.84],
-    zoom: [1.02, 1.08],
-    points: ["One scan, three systems", "Server route keeps token private", "Missing lines would be meaningful"],
+    start: 134,
+    end: 169,
+    eyebrow: "Transfer",
+    title: "Two-sided custody handoff",
+    body: "The logged-in tech is implicit. The receiving badge is explicit. Self-transfer is rejected before a valid handoff succeeds.",
+    points: ["From user is automatic", "Receiving badge is scanned", "State stays in service"],
   },
   {
-    id: "transfer",
-    kind: "capture",
-    eyebrow: "Custody",
-    title: "Transfer is two-sided",
-    caption:
-      "The logged-in tech is implicit. The receiving badge is explicit, and the asset remains in service.",
-    image: "07-transfer-success.png",
-    duration: seconds(16),
-    focus: [0.5, 0.78],
-    zoom: [1.02, 1.08],
-    points: ["From side is automatic", "To side is scanned", "State does not change"],
+    start: 169,
+    end: 194,
+    eyebrow: "De-rack",
+    title: "Store from in-service clears facilities",
+    body: "This covers the easy-to-miss writeback rule: storing a live asset removes its facilities rack assignment while leaving finance alone.",
+    points: ["Ops moves to stored", "Facilities rack becomes null", "Finance untouched"],
   },
   {
-    id: "manager",
-    kind: "capture",
+    start: 194,
+    end: 216,
     eyebrow: "Manager",
     title: "Standup brief before table",
-    caption:
-      "The manager sees first actions and metrics before filtering through the asset list.",
-    image: "08-manager.png",
-    duration: seconds(19),
-    focus: [0.5, 0.45],
-    zoom: [1.01, 1.05],
-    points: ["8:55 AM information design", "Search and pagination still exist"],
+    body: "The dashboard opens with the first exception and action counts, then supports search and filtering for the full asset estate.",
+    points: ["8:55 AM information design", "Search proves the scanned asset exists", "Clean rows stay quiet"],
   },
   {
-    id: "detail",
-    kind: "capture",
-    eyebrow: "Forensics",
-    title: "Event history is the source of truth",
-    caption:
-      "The asset detail page shows current state first, then newest-first scan history.",
-    image: "09-asset-detail.png",
-    duration: seconds(17),
-    focus: [0.52, 0.62],
-    zoom: [1.015, 1.065],
-    points: ["Receive", "Store", "Deploy", "Transfer custody"],
+    start: 216,
+    end: 226,
+    eyebrow: "Evidence",
+    title: "Asset detail is forensic",
+    body: "The detail page shows current placement and the full event log so managers can audit the workflow end to end.",
+    points: ["Current state", "Procurement context", "Receive, store, deploy, transfer history"],
   },
   {
-    id: "reconcile",
-    kind: "capture",
+    start: 226,
+    end: 243,
     eyebrow: "Reconciliation",
-    title: "Manager language, not raw diffs",
-    caption:
-      "Ops, facilities, and finance are joined server-side and translated into action categories.",
-    image: "10-reconcile.png",
-    duration: seconds(22),
-    focus: [0.5, 0.45],
-    zoom: [1.01, 1.05],
+    title: "Categorized drift, not raw diff",
+    body: "The server route joins operations, facilities, and finance without leaking the API token to the browser.",
     points: ["Fix today", "Needs a human", "Probably fine", "Clean"],
   },
   {
-    id: "tradeoff",
-    kind: "text",
-    eyebrow: "Call I nearly made the other way",
-    title: "Skip the preview? I kept it.",
-    caption:
-      "The simpler flow would scan asset, scan destination, and let the API validate. I kept the preview because one extra GET is cheap; sending a person back to the wrong rack is not.",
-    duration: seconds(30),
-    points: ["Preview catches wrong-tag mistakes", "Mutation happens only after confirmation", "Better for the dock workflow"],
-  },
-  {
-    id: "barcodes",
-    kind: "capture",
+    start: 243,
+    end: 264,
     eyebrow: "Reviewer kit",
-    title: "Scannable Code 128 examples",
-    caption:
-      "The barcode sheet covers happy path, drift, disposed assets, ghost assets, locations, and badges.",
-    image: "11-barcodes.png",
-    duration: seconds(16),
-    focus: [0.5, 0.6],
-    zoom: [1.015, 1.06],
-    points: ["Actual scanner input", "Interesting review cases", "No hand-built data needed"],
-  },
-  {
-    id: "subtraction",
-    kind: "text",
-    eyebrow: "Subtraction",
-    title: "What I chose not to build",
-    caption:
-      "Offline mode, RMA screens, full auth, and bulk import were intentionally left out. The hot path, audit trail, writebacks, and reconciliation matter more for this prototype.",
-    duration: seconds(20),
-    points: ["Subtraction is part of product judgment", "README documents the tradeoffs"],
-  },
-  {
-    id: "closing",
-    kind: "text",
-    eyebrow: "Submission",
-    title: "One scan. Three systems. Actionable drift.",
-    caption:
-      "AssetOps is built to make techs keep scanning and managers act faster on evidence.",
-    duration: seconds(16),
-    points: ["Repo and README include validation evidence", "Ready for review"],
+    title: "Scannable cases for real testing",
+    body: "The barcode sheet includes happy path, drifted, disposed, ghost, location, incomplete deploy, and badge cases.",
+    points: ["Code 128", "Failure cases included", "Ready to scan from paper or screen"],
   },
 ];
-
-export const LOOM_DURATION_IN_FRAMES = scenes.reduce(
-  (total, scene) => total + scene.duration,
-  0,
-);
 
 const colors = {
   bg: "#05080b",
@@ -227,16 +128,8 @@ const colors = {
   border: "rgba(103, 232, 249, 0.36)",
 };
 
-function useProgress(duration: number) {
-  const frame = useCurrentFrame();
-  return {
-    frame,
-    progress: interpolate(frame, [0, duration], [0, 1], {
-      extrapolateLeft: "clamp",
-      extrapolateRight: "clamp",
-      easing: Easing.bezier(0.16, 1, 0.3, 1),
-    }),
-  };
+function currentChapter(t: number): Chapter {
+  return chapters.find((chapter) => t >= chapter.start && t < chapter.end) ?? chapters[chapters.length - 1]!;
 }
 
 function Background() {
@@ -266,7 +159,7 @@ function BrandMark() {
     <div
       style={{
         position: "absolute",
-        top: 42,
+        top: 38,
         left: 58,
         display: "flex",
         alignItems: "center",
@@ -292,172 +185,21 @@ function BrandMark() {
   );
 }
 
-function SceneProgress({index}: {index: number}) {
+function BrowserFrame() {
   return (
     <div
       style={{
         position: "absolute",
-        left: 116,
-        bottom: 64,
-        display: "flex",
-        gap: 8,
-      }}
-    >
-      {scenes.map((scene, sceneIndex) => (
-        <div
-          key={scene.id}
-          style={{
-            width: sceneIndex === index ? 52 : 16,
-            height: 6,
-            borderRadius: 999,
-            background:
-              sceneIndex <= index
-                ? `linear-gradient(90deg, ${colors.cyan}, ${colors.green})`
-                : "rgba(148, 163, 184, 0.28)",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function BulletList({points = []}: {points?: string[]}) {
-  return (
-    <div style={{display: "flex", flexDirection: "column", gap: 14}}>
-      {points.map((point) => (
-        <div
-          key={point}
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 12,
-            color: colors.dim,
-            fontSize: 27,
-            lineHeight: 1.24,
-          }}
-        >
-          <span
-            style={{
-              marginTop: 9,
-              width: 8,
-              height: 8,
-              borderRadius: 999,
-              background: colors.green,
-              boxShadow: "0 0 24px rgba(52, 211, 153, 0.55)",
-              flex: "0 0 auto",
-            }}
-          />
-          <span>{point}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function TextScene({scene, index}: {scene: LoomScene; index: number}) {
-  const {frame, progress} = useProgress(scene.duration);
-  const opacity = interpolate(frame, [0, 20], [0, 1], {extrapolateRight: "clamp"});
-  const y = interpolate(progress, [0, 1], [28, 0]);
-
-  return (
-    <AbsoluteFill style={{color: colors.text}}>
-      <Background />
-      <BrandMark />
-      <div
-        style={{
-          position: "absolute",
-          left: 150,
-          top: scene.kind === "title" ? 214 : 178,
-          width: 1180,
-          opacity,
-          transform: `translateY(${y}px)`,
-        }}
-      >
-        <div
-          style={{
-            color: colors.cyan,
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
-            fontSize: 23,
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
-            fontWeight: 800,
-            marginBottom: 30,
-          }}
-        >
-          {scene.eyebrow}
-        </div>
-        <div
-          style={{
-            color: colors.text,
-            fontSize: scene.kind === "title" ? 128 : 82,
-            lineHeight: 0.98,
-            fontWeight: 900,
-            maxWidth: 1180,
-          }}
-        >
-          {scene.title}
-        </div>
-        <div
-          style={{
-            marginTop: 30,
-            color: colors.dim,
-            fontSize: 36,
-            lineHeight: 1.34,
-            maxWidth: 1140,
-          }}
-        >
-          {scene.caption}
-        </div>
-        <div
-          style={{
-            marginTop: 42,
-            padding: 26,
-            border: `1px solid ${colors.border}`,
-            borderRadius: 24,
-            background: colors.panel,
-            maxWidth: 850,
-          }}
-        >
-          <BulletList points={scene.points} />
-        </div>
-      </div>
-      <SceneProgress index={index} />
-    </AbsoluteFill>
-  );
-}
-
-function BrowserFrame({scene}: {scene: LoomScene}) {
-  const {frame} = useProgress(scene.duration);
-  const [startZoom, endZoom] = scene.zoom ?? [1, 1.04];
-  const [focusX, focusY] = scene.focus ?? [0.5, 0.5];
-  const scale = interpolate(frame, [0, scene.duration], [startZoom, endZoom], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-    easing: Easing.bezier(0.33, 1, 0.68, 1),
-  });
-  const panX = interpolate(focusX, [0, 1], [56, -56], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const panY = interpolate(focusY, [0, 1], [34, -42], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        left: 96,
-        top: 136,
-        width: 1260,
-        height: 708,
+        left: 64,
+        top: 104,
+        width: 1340,
+        height: 804,
         borderRadius: 28,
         overflow: "hidden",
-        border: "1px solid rgba(148, 163, 184, 0.28)",
+        border: "1px solid rgba(148, 163, 184, 0.30)",
         background: "#020617",
         boxShadow:
-          "0 42px 120px rgba(0, 0, 0, 0.52), 0 0 0 1px rgba(255,255,255,0.04) inset",
+          "0 42px 120px rgba(0, 0, 0, 0.54), 0 0 0 1px rgba(255,255,255,0.04) inset",
       }}
     >
       <div
@@ -478,7 +220,7 @@ function BrowserFrame({scene}: {scene: LoomScene}) {
           style={{
             marginLeft: 16,
             height: 22,
-            width: 510,
+            width: 560,
             borderRadius: 999,
             background: "rgba(255,255,255,0.055)",
             color: "rgba(226,232,240,0.54)",
@@ -489,26 +231,26 @@ function BrowserFrame({scene}: {scene: LoomScene}) {
             fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
           }}
         >
-          localhost:3000 / AssetOps
+          localhost:3000 / live AssetOps recording
         </div>
       </div>
       <div
         style={{
           position: "relative",
           width: "100%",
-          height: 664,
+          height: 760,
           overflow: "hidden",
           background: "#030712",
         }}
       >
-        <Img
-          src={staticFile(`captures/${scene.image}`)}
+        <OffthreadVideo
+          src={staticFile("walkthrough/app-working.webm")}
+          playbackRate={0.31}
+          volume={0}
           style={{
             width: "100%",
             height: "100%",
             objectFit: "cover",
-            transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
-            transformOrigin: `${focusX * 100}% ${focusY * 100}%`,
           }}
         />
       </div>
@@ -530,104 +272,161 @@ function Dot({color}: {color: string}) {
   );
 }
 
-function CaptureScene({scene, index}: {scene: LoomScene; index: number}) {
-  const {frame} = useProgress(scene.duration);
-  const opacity = interpolate(frame, [0, 18], [0, 1], {extrapolateRight: "clamp"});
-  const x = interpolate(frame, [0, 18], [34, 0], {
+function CaptionPanel({chapter}: {chapter: Chapter}) {
+  const frame = useCurrentFrame();
+  const t = frame / LOOM_FPS;
+  const local = t - chapter.start;
+  const opacity = interpolate(local, [0, 0.7], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const x = interpolate(local, [0, 0.7], [36, 0], {
+    extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.bezier(0.16, 1, 0.3, 1),
   });
 
   return (
-    <AbsoluteFill style={{color: colors.text}}>
-      <Background />
-      <BrandMark />
-      <BrowserFrame scene={scene} />
+    <div
+      style={{
+        position: "absolute",
+        left: 1440,
+        top: 138,
+        width: 408,
+        opacity,
+        transform: `translateX(${x}px)`,
+      }}
+    >
       <div
         style={{
-          position: "absolute",
-          left: 1414,
-          top: 190,
-          width: 410,
-          opacity,
-          transform: `translateX(${x}px)`,
+          color: colors.cyan,
+          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+          fontSize: 19,
+          fontWeight: 800,
+          letterSpacing: "0.18em",
+          textTransform: "uppercase",
+          marginBottom: 20,
+        }}
+      >
+        {chapter.eyebrow}
+      </div>
+      <div
+        style={{
+          padding: 28,
+          borderRadius: 24,
+          border: `1px solid ${colors.border}`,
+          background: colors.panel,
+          boxShadow:
+            "0 32px 100px rgba(0,0,0,0.46), 0 0 80px rgba(103,232,249,0.13)",
         }}
       >
         <div
           style={{
-            color: colors.cyan,
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
-            fontSize: 19,
-            fontWeight: 800,
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
-            marginBottom: 20,
+            color: colors.text,
+            fontSize: 36,
+            lineHeight: 1.08,
+            fontWeight: 850,
           }}
         >
-          {scene.eyebrow}
+          {chapter.title}
         </div>
         <div
           style={{
-            padding: 28,
-            borderRadius: 24,
-            border: `1px solid ${colors.border}`,
-            background: colors.panel,
-            boxShadow:
-              "0 32px 100px rgba(0,0,0,0.46), 0 0 80px rgba(103,232,249,0.13)",
+            marginTop: 18,
+            color: colors.dim,
+            fontSize: 23,
+            lineHeight: 1.36,
           }}
         >
-          <div
-            style={{
-              color: colors.text,
-              fontSize: scene.id === "microcopy" ? 31 : 38,
-              lineHeight: 1.08,
-              fontWeight: 850,
-            }}
-          >
-            {scene.title}
-          </div>
-          <div
-            style={{
-              marginTop: 18,
-              color: colors.dim,
-              fontSize: 24,
-              lineHeight: 1.36,
-            }}
-          >
-            {scene.caption}
-          </div>
-          <div style={{marginTop: 24}}>
-            <BulletList points={scene.points} />
-          </div>
+          {chapter.body}
+        </div>
+        <div style={{marginTop: 24, display: "flex", flexDirection: "column", gap: 13}}>
+          {chapter.points.map((point) => (
+            <div
+              key={point}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 11,
+                color: colors.dim,
+                fontSize: 24,
+                lineHeight: 1.22,
+              }}
+            >
+              <span
+                style={{
+                  marginTop: 8,
+                  width: 8,
+                  height: 8,
+                  borderRadius: 999,
+                  background: colors.green,
+                  boxShadow: "0 0 24px rgba(52, 211, 153, 0.55)",
+                  flex: "0 0 auto",
+                }}
+              />
+              <span>{point}</span>
+            </div>
+          ))}
         </div>
       </div>
-      <SceneProgress index={index} />
-    </AbsoluteFill>
+    </div>
   );
 }
 
-function Scene({scene, index}: {scene: LoomScene; index: number}) {
-  if (scene.kind === "capture") {
-    return <CaptureScene scene={scene} index={index} />;
-  }
-  return <TextScene scene={scene} index={index} />;
+function Progress({time}: {time: number}) {
+  const progress = Math.min(1, time / (LOOM_DURATION_IN_FRAMES / LOOM_FPS));
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: 64,
+        right: 64,
+        bottom: 54,
+        height: 8,
+        borderRadius: 999,
+        background: "rgba(148, 163, 184, 0.20)",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          width: `${progress * 100}%`,
+          height: "100%",
+          borderRadius: 999,
+          background: `linear-gradient(90deg, ${colors.cyan}, ${colors.green}, #f8fafc)`,
+        }}
+      />
+    </div>
+  );
 }
 
 export const AssetOpsLoom = () => {
-  let start = 0;
+  const frame = useCurrentFrame();
+  const t = frame / LOOM_FPS;
+  const chapter = currentChapter(t);
 
   return (
-    <AbsoluteFill style={{backgroundColor: colors.bg}}>
-      <Audio src={staticFile("narration/loom-voiceover.wav")} volume={0.95} />
-      {scenes.map((scene, index) => {
-        const from = start;
-        start += scene.duration;
-        return (
-          <Sequence key={scene.id} from={from} durationInFrames={scene.duration}>
-            <Scene scene={scene} index={index} />
-          </Sequence>
-        );
-      })}
+    <AbsoluteFill style={{backgroundColor: colors.bg, color: colors.text}}>
+      <Background />
+      <Audio src={staticFile("narration/loom-voiceover.wav")} volume={0.96} />
+      <Sequence>
+        <BrowserFrame />
+      </Sequence>
+      <BrandMark />
+      <CaptionPanel chapter={chapter} />
+      <Progress time={t} />
+      <div
+        style={{
+          position: "absolute",
+          left: 64,
+          top: 936,
+          color: "rgba(226,232,240,0.66)",
+          fontSize: 18,
+          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+        }}
+      >
+        {"Live demo: scan workflows -> writebacks -> manager evidence -> reconciliation -> barcode kit"}
+      </div>
     </AbsoluteFill>
   );
 };

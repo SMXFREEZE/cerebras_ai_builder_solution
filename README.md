@@ -103,7 +103,7 @@ PLAYWRIGHT_CHROME_EXECUTABLE_PATH="C:/Program Files/Google/Chrome/Application/ch
 
 `demo:record` resets the demo namespace and captures the 60-90 second reviewer path as browser screenshots. `demo:render` composes those captures into a 1080p MP4 with title/context/closing scenes, animated zooms, and captions.
 
-`demo:loom` generates a narrated 3-5 minute walkthrough MP4 that covers the official Loom points: what was built, one call nearly made the other way, and one piece of microcopy.
+`demo:loom` records a fresh live browser walkthrough with Playwright, generates narration, then renders a 3-5 minute MP4. It covers the official Loom points plus every major app surface: receive, duplicate receive, serial conflict recovery, store, deploy validation, deploy writebacks, transfer, store-from-in-service de-racking, manager filtering, asset detail, reconciliation, and barcode coverage.
 
 ## Validation I ran
 
