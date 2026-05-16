@@ -10,13 +10,13 @@ import {
   useCurrentFrame,
 } from "remotion";
 
-export const LOOM_FPS = 30;
+export const LOOM_FPS = 25;
 export const LOOM_WIDTH = 1920;
 export const LOOM_HEIGHT = 1080;
 
 const seconds = (value: number) => value * LOOM_FPS;
 
-export const LOOM_DURATION_IN_FRAMES = seconds(264);
+export const LOOM_DURATION_IN_FRAMES = seconds(124);
 
 type Chapter = {
   start: number;
@@ -30,91 +30,99 @@ type Chapter = {
 const chapters: Chapter[] = [
   {
     start: 0,
-    end: 24,
+    end: 10,
     eyebrow: "Proof, not slides",
     title: "Live app walkthrough after reset",
     body: "Playwright drives the real app from the landing page, so the demo starts with the actual product surface instead of a deck.",
     points: ["No static mockup", "Browser video captured from localhost", "Every major challenge surface appears"],
   },
   {
-    start: 24,
-    end: 45,
+    start: 10,
+    end: 16,
     eyebrow: "Technician map",
     title: "Four flows, scoped writes",
     body: "Receive, store, deploy, and transfer each announce what they write so the technician can trust the action.",
     points: ["Receive writes ops", "Deploy writes all three systems", "Transfer only changes custody"],
   },
   {
-    start: 45,
-    end: 73,
+    start: 16,
+    end: 31,
     eyebrow: "Receive",
     title: "Fresh scan, duplicate safety, serial recovery",
     body: "The dock flow captures item details, accepts a fresh tag, accepts the same tag again, then explains a serial conflict with both values visible.",
     points: ["Scanner input stays focused", "Camera fallback exists", "Recovery copy is specific"],
   },
   {
-    start: 73,
-    end: 97,
+    start: 31,
+    end: 42,
     eyebrow: "Store",
     title: "Two-step move with asset preview",
     body: "The preview is the product tradeoff: one cheap read prevents an expensive wrong-shelf walkback.",
     points: ["Scan asset first", "Preview current state", "Then scan shelf"],
   },
   {
-    start: 97,
-    end: 134,
+    start: 42,
+    end: 59,
     eyebrow: "Deploy",
     title: "Validation before side effects",
     body: "A missing rack unit is blocked before writebacks. A complete rack commits ops, facilities, and finance.",
     points: ["Incomplete rack rejected", "Facilities rack assignment written", "Finance capitalization written"],
   },
   {
-    start: 134,
-    end: 169,
+    start: 59,
+    end: 73,
     eyebrow: "Transfer",
     title: "Two-sided custody handoff",
     body: "The logged-in tech is implicit. The receiving badge is explicit. Self-transfer is rejected before a valid handoff succeeds.",
     points: ["From user is automatic", "Receiving badge is scanned", "State stays in service"],
   },
   {
-    start: 169,
-    end: 194,
+    start: 73,
+    end: 82,
     eyebrow: "De-rack",
     title: "Store from in-service clears facilities",
     body: "This covers the easy-to-miss writeback rule: storing a live asset removes its facilities rack assignment while leaving finance alone.",
     points: ["Ops moves to stored", "Facilities rack becomes null", "Finance untouched"],
   },
   {
-    start: 194,
-    end: 216,
+    start: 82,
+    end: 94,
     eyebrow: "Manager",
     title: "Standup brief before table",
     body: "The dashboard opens with the first exception and action counts, then supports search and filtering for the full asset estate.",
     points: ["8:55 AM information design", "Search proves the scanned asset exists", "Clean rows stay quiet"],
   },
   {
-    start: 216,
-    end: 226,
+    start: 94,
+    end: 100,
     eyebrow: "Evidence",
     title: "Asset detail is forensic",
     body: "The detail page shows current placement and the full event log so managers can audit the workflow end to end.",
     points: ["Current state", "Procurement context", "Receive, store, deploy, transfer history"],
   },
   {
-    start: 226,
-    end: 243,
+    start: 100,
+    end: 110,
     eyebrow: "Reconciliation",
     title: "Categorized drift, not raw diff",
     body: "The server route joins operations, facilities, and finance without leaking the API token to the browser.",
     points: ["Fix today", "Needs a human", "Probably fine", "Clean"],
   },
   {
-    start: 243,
-    end: 264,
+    start: 110,
+    end: 117,
     eyebrow: "Reviewer kit",
     title: "Scannable cases for real testing",
     body: "The barcode sheet includes happy path, drifted, disposed, ghost, location, incomplete deploy, and badge cases.",
     points: ["Code 128", "Failure cases included", "Ready to scan from paper or screen"],
+  },
+  {
+    start: 117,
+    end: 124,
+    eyebrow: "Submission proof",
+    title: "Evidence ends on the asset",
+    body: "The closing frame returns to the scanned asset so the reviewer can see the final state and event history after the walkthrough.",
+    points: ["C0009001 in service", "Custodian transferred", "Event log preserved"],
   },
 ];
 
@@ -245,7 +253,7 @@ function BrowserFrame() {
       >
         <OffthreadVideo
           src={staticFile("walkthrough/app-working.webm")}
-          playbackRate={0.31}
+          playbackRate={1}
           volume={0}
           style={{
             width: "100%",
