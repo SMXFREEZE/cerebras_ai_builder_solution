@@ -1,17 +1,29 @@
-This is AssetOps, a scanner-first asset tracking system for Cerebras manufacturing. This video is generated from the live local app after a data reset, so the scans, errors, writebacks, filters, and audit pages are being exercised, not mocked.
+This is AssetOps, a scanner-first asset tracking system for Cerebras manufacturing. I am using a Playwright-generated walkthrough, captured after a reset, then adding zoomed product lenses so the reviewer can see the small decisions that are easy to miss in a raw screen capture.
 
-The home screen gives the reviewer the product context: operations, facilities, and finance all hold part of the truth, and one missed scan creates drift. The technician console has the four hot-path workflows: receive, store, deploy, and transfer. Each flow names exactly which systems it writes.
+The first screen explains the problem before the feature tour. Operations, facilities, and finance each hold part of the truth. The app is valuable only if a scan writes the right system, and only the right system.
 
-Receive starts at the dock. The serial, model, class, and receiving location are visible before the tag scan. I scan a fresh asset and the app accepts it. I scan the same tag again to prove duplicate receives are idempotent. Then I change the serial and scan again; the conflict shows the expected serial and the scanned serial, so recovery is specific.
+The technician console has four large cards: receive, store, deploy, and transfer. The small copy on each card matters. It tells the technician what the action will write before they click. Receive writes operations. Deploy writes operations, facilities, and finance. Transfer changes custody only. That is how the interface builds trust before the scan.
 
-Store is two-step on purpose. The asset tag is scanned first, the app previews the current asset, and only then does the technician scan the shelf. One extra read is cheaper than putting expensive hardware in the wrong place.
+Receive starts at the dock. The serial, model, class, and receiving location are visible before the asset tag is scanned. The scan input is the main control because USB and Bluetooth scanners type into it and press Enter. The camera button sits beside it so a phone can use the same workflow without a separate settings page.
 
-Deploy is stricter because it creates downstream side effects. A rack without an RU is rejected before anything is written. A complete rack commits the operations state, writes the facilities rack assignment, and capitalizes the asset in finance.
+I scan a fresh asset. The app accepts it. Then I scan the same tag again with the same serial, and the duplicate is safe. Then I change the serial and scan the tag again. This is the microcopy I am proud of: expected serial versus scanned serial. I almost wrote a generic serial mismatch error, but that would force the tech to guess. Showing both values gives the recovery path immediately.
 
-Transfer is custody only. The from user is the logged-in technician. The receiving badge is explicit. The app rejects transferring to yourself, then accepts a real handoff while keeping the asset in service.
+Store is intentionally two-step. First the technician scans the asset, and the app previews the current state. Then the technician scans the shelf and confirms the move. I nearly made this a single form with both fields, but keeping the preview prevents wrong-shelf writes when someone scans the wrong object first.
 
-I also show de-racking. When an in-service asset is stored, operations moves it to stored and facilities is cleared, while finance stays untouched.
+Deploy is stricter because it creates side effects. I scan a rack location without an RU, and the app blocks it before anything is written. Then I scan a complete rack. Now the success panel names the downstream writes: facilities rack assignment written, and finance capitalization written. Generic success would hide the riskiest part of the workflow.
 
-The manager dashboard is the standup view: first exception, critical and review counts, clean inventory, search, and filters. I search for the scanned asset and open its detail page. The detail page shows current placement, procurement context, and the event log for receive, store, deploy, and transfer.
+Transfer is a custody handoff. The logged-in technician is the from side automatically, and only the receiving badge is scanned. The app rejects transferring the asset to yourself, then accepts a real handoff. Notice the lifecycle state stays in service. Custody changed, not placement or finance.
 
-The reconciliation page joins operations, facilities, and finance server-side, then ranks differences as fix today, needs a human, probably fine, or clean. The barcode sheet is the reviewer kit: happy paths plus duplicate, disposed, drifted, ghost, location, incomplete rack, and badge cases.
+The de-rack case is easy to miss, so I show it explicitly. Storing an in-service asset moves operations back to stored and clears the facilities rack assignment. Finance stays untouched. The copy says facilities cleared so the reviewer can see that this was not an accounting event.
+
+Now the manager view. This page is designed for the 8:55 standup. It leads with the first exception and action counts, then gives search and filters for the full estate. Clean inventory is present, but quieter than exceptions. I search for the scanned asset and open the detail page.
+
+The detail page is the forensic view. It shows current placement, custodian, procurement context, and the event log. The event rows are the proof that this is not just a marketing mockup: receive, store, deploy, and transfer all leave evidence.
+
+The reconciliation page joins operations, facilities, and finance on the server, so the browser never receives the API token. More importantly, it does not just dump a raw diff. It ranks rows as fix today, needs a human, probably fine, or clean. That is the manager product judgment: what should I ignore, and what should I fix first?
+
+Finally, the barcode sheet is the reviewer kit. It includes happy path tags, disposed assets, drifted assets, ghost finance-only cases, locations, an incomplete rack, and user badges. The reviewer can scan from the page and try the same edge cases shown in the video.
+
+What I built is not every enterprise feature. I intentionally left out authentication, RMA screens, offline sync, bulk import, and hardware pairing. The prototype focuses on the hot path: fast scans, scoped writebacks, recovery copy, manager evidence, and reconciliation judgment.
+
+The closing frame returns to the scanned asset, C0009001, so the final state and event log are visible at the end. That is the promise of AssetOps: every scan becomes a trustworthy record that operations, facilities, finance, and the manager can all act on.

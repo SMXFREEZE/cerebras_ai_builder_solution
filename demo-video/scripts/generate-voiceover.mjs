@@ -22,7 +22,7 @@ $voice = $synth.GetInstalledVoices() |
 if ($voice -ne $null) {
   $synth.SelectVoice($voice.VoiceInfo.Name)
 }
-$synth.Rate = 3
+$synth.Rate = 2
 $synth.Volume = 100
 $synth.SetOutputToWaveFile($output)
 $synth.Speak($text)

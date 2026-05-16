@@ -297,8 +297,10 @@ async function run() {
     video: "app-working.webm",
     markers,
   };
+  const manifestDir = path.join(projectDir, "out");
+  await fs.mkdir(manifestDir, {recursive: true});
   await fs.writeFile(
-    path.join(outputDir, "manifest.json"),
+    path.join(manifestDir, "walkthrough-manifest.json"),
     `${JSON.stringify(manifest, null, 2)}\n`,
   );
 

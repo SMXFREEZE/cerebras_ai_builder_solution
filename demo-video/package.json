@@ -6,8 +6,9 @@
   "scripts": {
     "record": "node scripts/record.mjs",
     "voiceover": "node scripts/generate-voiceover.mjs",
+    "extract:loom": "node scripts/extract-walkthrough-frames.mjs",
     "render": "remotion render src/index.tsx AssetOpsDemo ../submission-assets/AssetOps_Cerebras_Remotion_Demo.mp4 --codec=h264 --overwrite && node scripts/optimize-mp4.mjs ../submission-assets/AssetOps_Cerebras_Remotion_Demo.mp4",
-    "render:loom": "node scripts/record-walkthrough.mjs && node scripts/generate-voiceover.mjs && remotion render src/index.tsx AssetOpsLoom ../submission-assets/AssetOps_Cerebras_Loom_Walkthrough.mp4 --codec=h264 --concurrency=4 --overwrite && node scripts/optimize-mp4.mjs ../submission-assets/AssetOps_Cerebras_Loom_Walkthrough.mp4",
+    "render:loom": "node scripts/record-walkthrough.mjs && node scripts/extract-walkthrough-frames.mjs && node scripts/generate-voiceover.mjs && remotion render src/index.tsx AssetOpsLoom ../submission-assets/AssetOps_Cerebras_Loom_Walkthrough.mp4 --codec=h264 --concurrency=4 --timeout=120000 --overwrite && node scripts/optimize-mp4.mjs ../submission-assets/AssetOps_Cerebras_Loom_Walkthrough.mp4",
     "studio": "remotion studio src/index.tsx"
   },
   "dependencies": {
