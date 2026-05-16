@@ -12,6 +12,8 @@ coverage/
 .DS_Store
 .claude/
 submission-assets/
+demo-video/public/captures/
+demo-video/out/
 .env
 .env.local
 api/data/

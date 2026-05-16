@@ -68,6 +68,39 @@ Reset before a demo or Loom:
 curl -X POST http://localhost:3000/api/upstream/reset
 ```
 
+## Automated MP4 demo
+
+The repo includes a repeatable demo-video pipeline for the current app. It does not rebuild or redesign the product; it records the running app with Playwright, turns the captured flow into a polished Remotion composition, then runs an FFmpeg faststart pass for easier upload.
+
+```bash
+pnpm dev
+```
+
+In a second terminal:
+
+```bash
+pnpm demo:record
+pnpm demo:render
+```
+
+If `pnpm` is not on PATH yet, use `corepack pnpm demo:record` and `corepack pnpm demo:render`.
+
+Output:
+
+```text
+submission-assets/AssetOps_Cerebras_Remotion_Demo.mp4
+```
+
+Useful overrides:
+
+```bash
+APP_BASE_URL=http://localhost:3000 pnpm demo:record
+DEMO_ASSET_TAG=C0009001 pnpm demo:record
+PLAYWRIGHT_CHROME_EXECUTABLE_PATH="C:/Program Files/Google/Chrome/Application/chrome.exe" pnpm demo:record
+```
+
+`demo:record` resets the demo namespace and captures the 60-90 second reviewer path as browser screenshots. `demo:render` composes those captures into a 1080p MP4 with title/context/closing scenes, animated zooms, cursor motion, and captions.
+
 ## Validation I ran
 
 ```bash
@@ -75,6 +108,8 @@ pnpm lint
 pnpm test
 pnpm --filter @asset-tracking/starter typecheck
 pnpm build
+pnpm demo:record
+pnpm demo:render
 ```
 
 Last full local QA pass:

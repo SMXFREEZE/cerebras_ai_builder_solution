@@ -9,15 +9,18 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "pnpm -r --parallel dev",
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "lint": "pnpm -r lint"
+    "dev": "corepack pnpm -r --parallel dev",
+    "build": "corepack pnpm -r build",
+    "test": "corepack pnpm -r test",
+    "lint": "corepack pnpm -r lint",
+    "demo:record": "corepack pnpm --filter @assetops/demo-video record",
+    "demo:render": "corepack pnpm --filter @assetops/demo-video render"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
       "better-sqlite3",
       "esbuild",
+      "ffmpeg-static",
       "sharp",
       "unrs-resolver"
     ]
