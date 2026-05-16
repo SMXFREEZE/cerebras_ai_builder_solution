@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
+import { SceneFallback } from "./SceneFallback";
 
 const HeroScene = dynamic(() => import("./HeroScene").then((m) => m.HeroScene), {
   ssr: false,
@@ -61,26 +62,8 @@ const workflows = [
 
 function ScenePlaceholder() {
   return (
-    <div
-      aria-hidden
-      className="relative h-[420px] w-full overflow-hidden lg:h-[520px]"
-      style={{
-        background:
-          "radial-gradient(circle at 50% 52%, rgba(224,242,255,0.16), transparent 30%), radial-gradient(circle at 50% 50%, rgba(125,211,252,0.10), transparent 18%)",
-      }}
-    >
-      <div className="absolute left-1/2 top-1/2 h-[58%] w-[58%] -translate-x-1/2 -translate-y-1/2 rotate-12 border border-white/35 shadow-[0_0_70px_rgba(224,242,255,0.12)]" />
-      <div className="absolute left-1/2 top-1/2 h-[42%] w-[42%] -translate-x-1/2 -translate-y-1/2 rotate-45 border border-white/25" />
-      <div className="absolute left-1/2 top-1/2 h-px w-[58%] -translate-x-1/2 -translate-y-1/2 rotate-12 bg-white/30" />
-      <div className="absolute left-1/2 top-1/2 h-px w-[52%] -translate-x-1/2 -translate-y-1/2 -rotate-12 bg-white/24" />
-      <div className="absolute left-1/2 top-1/2 h-[34%] w-[34%] -translate-x-1/2 -translate-y-1/2 rotate-45 border border-sky-300/40" />
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(circle at 50% 50%, transparent 40%, rgba(10,10,10,0.6) 80%)",
-        }}
-      />
+    <div className="relative h-[420px] w-full lg:h-[520px]">
+      <SceneFallback />
     </div>
   );
 }

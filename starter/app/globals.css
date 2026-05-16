@@ -64,8 +64,56 @@ body {
   animation: fade 800ms ease-out both;
 }
 
+@keyframes hero-loader-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg) scaleX(1.06); }
+  to   { transform: translate(-50%, -50%) rotate(360deg) scaleX(1.06); }
+}
+
+@keyframes hero-loader-spin-reverse {
+  from { transform: translate(-50%, -50%) rotate(360deg) scaleY(0.92); }
+  to   { transform: translate(-50%, -50%) rotate(0deg) scaleY(0.92); }
+}
+
+@keyframes hero-loader-breathe {
+  0%, 100% { opacity: 0.66; transform: translate(-50%, -50%) scale(0.98); }
+  50%      { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+}
+
+.hero-loader-ring::before,
+.hero-loader-ring::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  border: 1px solid transparent;
+  border-top-color: rgba(224, 242, 255, 0.42);
+}
+
+.hero-loader-ring::after {
+  border-top-color: transparent;
+  border-right-color: rgba(125, 211, 252, 0.25);
+}
+
+.hero-loader-ring-slow {
+  animation: hero-loader-spin 7s linear infinite;
+}
+
+.hero-loader-ring-reverse {
+  animation: hero-loader-spin-reverse 9s linear infinite;
+}
+
+.hero-loader-glow {
+  animation: hero-loader-breathe 1.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-rise, .animate-fade { animation: none; }
+  .animate-rise,
+  .animate-fade,
+  .hero-loader-ring-slow,
+  .hero-loader-ring-reverse,
+  .hero-loader-glow {
+    animation: none;
+  }
 }
 
 .card-sweep {

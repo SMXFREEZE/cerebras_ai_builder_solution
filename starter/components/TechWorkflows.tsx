@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CameraScanButton } from "@/components/CameraScanButton";
 import { ScanInput } from "@/components/ScanInput";
 import { StateBadge } from "@/components/StatusBadge";
-import { getCurrentUserId } from "@/lib/auth";
+import { getCurrentUserId, roleUserId } from "@/lib/auth";
 import { stateLabel } from "@/lib/format";
 import {
   ensureDeployLocation,
@@ -647,7 +647,11 @@ export function TransferWorkflow() {
   const [status, setStatus] = useState<FormStatus>({ kind: "idle" });
   const disabled = status.kind === "loading";
 
-  const currentUser = useMemo(() => getCurrentUserId(), []);
+  const [currentUser, setCurrentUser] = useState(() => roleUserId("tech"));
+
+  useEffect(() => {
+    setCurrentUser(getCurrentUserId());
+  }, []);
 
   useEffect(() => {
     if (!assetTag) {
