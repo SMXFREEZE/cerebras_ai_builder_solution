@@ -99,7 +99,7 @@ DEMO_ASSET_TAG=C0009001 pnpm demo:record
 PLAYWRIGHT_CHROME_EXECUTABLE_PATH="C:/Program Files/Google/Chrome/Application/chrome.exe" pnpm demo:record
 ```
 
-`demo:record` resets the demo namespace and captures the 60-90 second reviewer path as browser screenshots. `demo:render` composes those captures into a 1080p MP4 with title/context/closing scenes, animated zooms, cursor motion, and captions.
+`demo:record` resets the demo namespace and captures the 60-90 second reviewer path as browser screenshots. `demo:render` composes those captures into a 1080p MP4 with title/context/closing scenes, animated zooms, and captions.
 
 ## Validation I ran
 

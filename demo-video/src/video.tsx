@@ -282,51 +282,6 @@ function Dot({color}: {color: string}) {
   );
 }
 
-function Cursor({scene}: {scene: CaptureScene}) {
-  const frame = useCurrentFrame();
-  const x = interpolate(
-    frame,
-    [20, scene.duration - 20],
-    [scene.cursor[0][0], scene.cursor[1][0]],
-    {extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: springEase},
-  );
-  const y = interpolate(
-    frame,
-    [20, scene.duration - 20],
-    [scene.cursor[0][1], scene.cursor[1][1]],
-    {extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: springEase},
-  );
-  const pulse = interpolate(frame % 45, [0, 18, 45], [0.5, 1, 0.5]);
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        left: 116 + x * 1280,
-        top: 178 + y * 676,
-        width: 34,
-        height: 34,
-        borderRadius: 999,
-        border: "2px solid rgba(255,255,255,0.95)",
-        background: "rgba(103,232,249,0.20)",
-        boxShadow: `0 0 ${32 + pulse * 18}px rgba(103,232,249,0.55)`,
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          left: 10,
-          top: 10,
-          width: 10,
-          height: 10,
-          borderRadius: 999,
-          background: colors.cyan,
-        }}
-      />
-    </div>
-  );
-}
-
 function CaptionPanel({scene}: {scene: CaptureScene}) {
   const {frame} = useSceneProgress(scene.duration);
   const opacity = interpolate(frame, [5, 22], [0, 1], {
@@ -433,7 +388,6 @@ function CaptureSceneView({scene, sceneIndex}: {scene: CaptureScene; sceneIndex:
       <Background />
       <BrandMark />
       <BrowserFrame scene={scene} />
-      <Cursor scene={scene} />
       <CaptionPanel scene={scene} />
       <Progress sceneIndex={sceneIndex} />
     </AbsoluteFill>
