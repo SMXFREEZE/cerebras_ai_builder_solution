@@ -248,7 +248,7 @@ Write rules implemented:
 | Deploy | Move to in service | Write rack row | Capitalize |
 | Transfer | Change custodian | No write | No write |
 
-## Three calls I nearly made the other way
+## Three calls I nearly made the other way.
 
 ### 1. Fetch current asset state between scan step 1 and scan step 2
 
