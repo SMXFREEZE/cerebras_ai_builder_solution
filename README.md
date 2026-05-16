@@ -81,14 +81,16 @@ In a second terminal:
 ```bash
 pnpm demo:record
 pnpm demo:render
+pnpm demo:loom
 ```
 
-If `pnpm` is not on PATH yet, use `corepack pnpm demo:record` and `corepack pnpm demo:render`.
+If `pnpm` is not on PATH yet, use `corepack pnpm demo:record`, `corepack pnpm demo:render`, and `corepack pnpm demo:loom`.
 
 Output:
 
 ```text
 submission-assets/AssetOps_Cerebras_Remotion_Demo.mp4
+submission-assets/AssetOps_Cerebras_Loom_Walkthrough.mp4
 ```
 
 Useful overrides:
@@ -101,6 +103,8 @@ PLAYWRIGHT_CHROME_EXECUTABLE_PATH="C:/Program Files/Google/Chrome/Application/ch
 
 `demo:record` resets the demo namespace and captures the 60-90 second reviewer path as browser screenshots. `demo:render` composes those captures into a 1080p MP4 with title/context/closing scenes, animated zooms, and captions.
 
+`demo:loom` generates a narrated 3-5 minute walkthrough MP4 that covers the official Loom points: what was built, one call nearly made the other way, and one piece of microcopy.
+
 ## Validation I ran
 
 ```bash
@@ -110,6 +114,7 @@ pnpm --filter @asset-tracking/starter typecheck
 pnpm build
 pnpm demo:record
 pnpm demo:render
+pnpm demo:loom
 ```
 
 Last full local QA pass:

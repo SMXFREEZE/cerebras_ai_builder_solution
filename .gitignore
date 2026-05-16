@@ -13,6 +13,7 @@ coverage/
 .claude/
 submission-assets/
 demo-video/public/captures/
+demo-video/public/narration/
 demo-video/out/
 .env
 .env.local

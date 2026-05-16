@@ -14,7 +14,8 @@
     "test": "corepack pnpm -r test",
     "lint": "corepack pnpm -r lint",
     "demo:record": "corepack pnpm --filter @assetops/demo-video record",
-    "demo:render": "corepack pnpm --filter @assetops/demo-video render"
+    "demo:render": "corepack pnpm --filter @assetops/demo-video render",
+    "demo:loom": "corepack pnpm --filter @assetops/demo-video render:loom"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
