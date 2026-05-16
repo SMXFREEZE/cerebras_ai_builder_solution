@@ -25,6 +25,39 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+.vanta-fog-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.66;
+  background:
+    radial-gradient(820px circle at 14% 18%, rgba(56, 189, 248, 0.20), transparent 58%),
+    radial-gradient(760px circle at 82% 34%, rgba(14, 165, 233, 0.14), transparent 56%),
+    radial-gradient(620px circle at 48% 82%, rgba(148, 163, 184, 0.10), transparent 60%),
+    linear-gradient(180deg, #05070d 0%, #080b10 48%, #0a0a0a 100%);
+}
+
+.vanta-fog-bg canvas {
+  opacity: 0.92;
+}
+
+.vanta-fog-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 18%, transparent 0%, rgba(5, 7, 13, 0.16) 58%, rgba(5, 7, 13, 0.48) 100%),
+    linear-gradient(180deg, rgba(5, 7, 13, 0.18), rgba(10, 10, 10, 0.66));
+}
+
+@media (max-width: 640px) {
+  .vanta-fog-bg {
+    opacity: 0.48;
+  }
 }
 
 .font-mono,
