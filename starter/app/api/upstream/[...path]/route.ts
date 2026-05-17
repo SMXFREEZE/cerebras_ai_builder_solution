@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { handleDeployedApi } from "@/lib/deployed-api";
 
 // Same-origin proxy to the upstream API. The bearer token is read from
 // API_TOKEN on the server and attached here, so it never reaches the browser.
@@ -9,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const UPSTREAM = (process.env.API_BASE_URL ?? "http://localhost:8080/v1").replace(/\/$/, "");
 const UPSTREAM_ROOT = UPSTREAM.replace(/\/v1$/, "");
+const USE_DEPLOYED_FALLBACK = process.env.API_BASE_URL === "local";
 
 function missingToken(): NextResponse {
   return NextResponse.json(
@@ -24,6 +26,8 @@ function missingToken(): NextResponse {
 }
 
 async function forward(req: NextRequest, segments: string[]): Promise<Response> {
+  if (USE_DEPLOYED_FALLBACK) return handleDeployedApi(req, segments);
+
   const token = process.env.API_TOKEN;
   if (!token) return missingToken();
 
