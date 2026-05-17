@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { StateBadge } from "@/components/StatusBadge";
-import { api } from "@/lib/api-client";
+import { ApiError, api } from "@/lib/api-client";
 import { eventLabel, formatDateTime } from "@/lib/format";
 import { locationLabel } from "@/lib/locations";
+import type { Asset, Event } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +13,19 @@ export default async function ManagerAssetDetailPage({
   params: Promise<{ tag: string }>;
 }): Promise<React.ReactElement> {
   const { tag } = await params;
-  const [asset, events] = await Promise.all([
-    api.assets.get(tag),
-    api.assets.history(tag),
-  ]);
+  let asset: Asset;
+  let events: Event[];
+  try {
+    [asset, events] = await Promise.all([
+      api.assets.get(tag),
+      api.assets.history(tag),
+    ]);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return <MissingAsset tag={tag} />;
+    }
+    throw error;
+  }
 
   return (
     <div className="space-y-6 py-6">
@@ -117,6 +127,44 @@ export default async function ManagerAssetDetailPage({
               No events recorded for this asset.
             </div>
           ) : null}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function MissingAsset({ tag }: { tag: string }) {
+  return (
+    <div className="mx-auto max-w-2xl py-16">
+      <Link
+        href="/manager"
+        className="text-[13px] text-[var(--text-dim)] transition hover:text-white hover:underline decoration-white/30 underline-offset-4"
+      >
+        Back to assets
+      </Link>
+      <section className="mt-5 rounded-xl border hairline bg-white/[0.02] p-6">
+        <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
+          Asset detail
+        </p>
+        <h1 className="display mt-3 text-3xl text-white">{tag}</h1>
+        <p className="mt-4 text-sm leading-6 text-[var(--text-dim)]">
+          This tag is not in operations yet. If you are testing the demo path,
+          receive the asset at the dock first, then come back here for its event
+          history.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Link
+            href="/tech/receive"
+            className="inline-flex h-10 items-center rounded-lg bg-white px-4 text-sm font-medium text-[#0a0a0a] transition hover:bg-white/90"
+          >
+            Receive asset
+          </Link>
+          <Link
+            href="/dev/barcodes"
+            className="inline-flex h-10 items-center rounded-lg border border-[var(--border-strong)] bg-white/[0.02] px-4 text-sm text-white transition hover:bg-white/[0.05]"
+          >
+            Open barcodes
+          </Link>
         </div>
       </section>
     </div>

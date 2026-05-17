@@ -8,6 +8,7 @@ build/
 .next/
 out/
 coverage/
+output/
 *.log
 .DS_Store
 .claude/

@@ -21,7 +21,7 @@ If you only have a minute, click these in order:
 | `/tech/deploy` | Missing-RU validation, then deploy with facilities and finance writebacks. |
 | `/tech/transfer` | Two-sided custody handoff: logged-in user is implicit, receiving badge is explicit. |
 | `/manager` | Standup brief first, metrics second, searchable/paginated asset table after that. |
-| `/manager/assets/C0009001` | Full forensic event log, newest first. |
+| `/manager/assets/C0000101` | Full forensic event log for a seeded asset, newest first. |
 | `/manager/reconcile` | Three-way ops/facilities/finance report with manager-language categories. |
 | `/dev/barcodes` | Printable Code 128 barcodes for happy path, drift, disposed, ghost, locations, and badges. |
 
