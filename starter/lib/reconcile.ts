@@ -55,10 +55,7 @@ function opsSnapshot(asset: Asset): ReconcileItem["ops"] {
   };
 }
 
-function add(
-  list: DraftItem[],
-  item: DraftItem,
-): void {
+function add(list: DraftItem[], item: DraftItem): void {
   list.push(item);
 }
 
@@ -83,7 +80,8 @@ function classifyKnownAsset(
           `Ops location is ${locationLabel(asset.location)}.`,
           "Facilities has no matching tagged space.",
         ],
-        recommendation: "Write the rack assignment to facilities or rescan deploy.",
+        recommendation:
+          "Write the rack assignment to facilities or rescan deploy.",
         ops: opsSnapshot(asset),
         finance,
       });
@@ -98,7 +96,8 @@ function classifyKnownAsset(
           `Ops says ${expectedRack ?? "no deploy rack"}.`,
           `Facilities says ${facilities.rack_location}.`,
         ],
-        recommendation: "Ask the floor tech to confirm the rack, then update the stale system.",
+        recommendation:
+          "Ask the floor tech to confirm the rack, then update the stale system.",
         ops: opsSnapshot(asset),
         facilities,
         finance,
@@ -118,7 +117,8 @@ function classifyKnownAsset(
             : "Finance has no matching equipment row.",
           `Ops site is ${asset.location.site}.`,
         ],
-        recommendation: "Create or update the finance equipment row after deploy.",
+        recommendation:
+          "Create or update the finance equipment row after deploy.",
         ops: opsSnapshot(asset),
         facilities,
         finance,
@@ -166,7 +166,8 @@ function classifyKnownAsset(
         `Finance status is ${finance.status}.`,
         `Book value is ${finance.book_value_usd}.`,
       ],
-      recommendation: "Review disposal paperwork and retire or impair the equipment row.",
+      recommendation:
+        "Review disposal paperwork and retire or impair the equipment row.",
       ops: opsSnapshot(asset),
       facilities,
       finance,
@@ -184,7 +185,8 @@ function classifyKnownAsset(
         `Ops location is ${locationLabel(asset.location)}.`,
         "This may be correct, but should stay visible while RMA is open.",
       ],
-      recommendation: "Keep capitalized if recoverable; impair only after RMA decision.",
+      recommendation:
+        "Keep capitalized if recoverable; impair only after RMA decision.",
       ops: opsSnapshot(asset),
       facilities,
       finance,
@@ -202,7 +204,8 @@ function classifyKnownAsset(
         `Ops site is ${asset.location.site}.`,
         `Finance site is ${finance.site}.`,
       ],
-      recommendation: "Update finance site if the latest physical scan is trusted.",
+      recommendation:
+        "Update finance site if the latest physical scan is trusted.",
       ops: opsSnapshot(asset),
       facilities,
       finance,
@@ -227,7 +230,8 @@ function classifyExternalOnly(
       title: "Facilities has a rack row for a tag missing from ops",
       owner: "Facilities",
       details: [`Facilities rack is ${facilities.rack_location}.`],
-      recommendation: "Confirm the tag on the floor; receive it into ops or clear the rack row.",
+      recommendation:
+        "Confirm the tag on the floor; receive it into ops or clear the rack row.",
       facilities,
       finance,
     });
@@ -262,9 +266,11 @@ function classifyExternalOnly(
   return items;
 }
 
-export async function buildReconcileReport(): Promise<ReconcileReport> {
+export async function buildReconcileReport(
+  assetsInput?: Asset[] | Promise<Asset[]>,
+): Promise<ReconcileReport> {
   const [assets, facilities, finance] = await Promise.all([
-    api.assets.list(),
+    assetsInput ?? api.assets.list(),
     api.mock.facilities(),
     api.mock.finance(),
   ]);
@@ -303,7 +309,8 @@ export async function buildReconcileReport(): Promise<ReconcileReport> {
       id: `${item.tag}-${item.category.replace(/\s+/g, "-").toLowerCase()}-${index}`,
     }))
     .sort((a, b) => {
-      const severityDelta = SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity];
+      const severityDelta =
+        SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity];
       if (severityDelta !== 0) return severityDelta;
       return a.tag.localeCompare(b.tag);
     });

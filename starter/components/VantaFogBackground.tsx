@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import type * as ThreeNamespace from "three";
 
 type ThreeModule = typeof ThreeNamespace;
@@ -36,17 +37,51 @@ const PLATFORM_FOG = {
   lowlightColor: 0x14213d,
 };
 
+type NavigatorWithConnection = Navigator & {
+  connection?: {
+    saveData?: boolean;
+  };
+};
+
+function canRunFog(): boolean {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+    return false;
+  if (window.matchMedia("(max-width: 768px), (pointer: coarse)").matches)
+    return false;
+
+  const connection = (window.navigator as NavigatorWithConnection).connection;
+  return !connection?.saveData;
+}
+
+function scheduleIdle(callback: () => void): () => void {
+  const idleWindow = window as Window & {
+    requestIdleCallback?: (
+      callback: IdleRequestCallback,
+      options?: IdleRequestOptions,
+    ) => number;
+    cancelIdleCallback?: (handle: number) => void;
+  };
+
+  if (idleWindow.requestIdleCallback && idleWindow.cancelIdleCallback) {
+    const id = idleWindow.requestIdleCallback(callback, { timeout: 1200 });
+    return () => idleWindow.cancelIdleCallback?.(id);
+  }
+
+  const id = globalThis.setTimeout(callback, 900);
+  return () => globalThis.clearTimeout(id);
+}
+
 export function VantaFogBackground() {
+  const pathname = usePathname();
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
     let effect: VantaEffect | null = null;
-    let timer: number | null = null;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let cancelScheduledStart: (() => void) | null = null;
 
     async function mountFog() {
-      if (!hostRef.current || reduceMotion.matches) return;
+      if (pathname !== "/" || !hostRef.current || !canRunFog()) return;
 
       const [mod, THREE] = await Promise.all([
         import("vanta/dist/vanta.fog.min") as Promise<
@@ -75,16 +110,16 @@ export function VantaFogBackground() {
       });
     }
 
-    timer = window.setTimeout(() => {
+    cancelScheduledStart = scheduleIdle(() => {
       void mountFog();
-    }, 700);
+    });
 
     return () => {
       cancelled = true;
-      if (timer) window.clearTimeout(timer);
+      cancelScheduledStart?.();
       effect?.destroy();
     };
-  }, []);
+  }, [pathname]);
 
   return <div ref={hostRef} aria-hidden className="vanta-fog-bg" />;
 }

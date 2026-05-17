@@ -2,35 +2,85 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { SceneFallback } from "./SceneFallback";
 
-const HeroScene = dynamic(() => import("./HeroScene").then((m) => m.HeroScene), {
-  ssr: false,
-  loading: () => <ScenePlaceholder />,
-});
+const HeroScene = dynamic(
+  () => import("./HeroScene").then((m) => m.HeroScene),
+  {
+    ssr: false,
+    loading: () => <ScenePlaceholder />,
+  },
+);
 
 const events = [
-  { ts: "14:02:11", tag: "C0009001", action: "receive",  loc: "DOCK-1",              by: "tech-mike" },
-  { ts: "14:02:47", tag: "C0009001", action: "store",    loc: "STG-1 / SHELF-3",     by: "tech-mike" },
-  { ts: "14:08:03", tag: "C0009001", action: "deploy",   loc: "BAY-12 / B-04 / U21", by: "tech-mike" },
-  { ts: "14:14:55", tag: "C0009001", action: "transfer", loc: "tech-mike → tech-ana", by: "tech-mike" },
-  { ts: "14:18:22", tag: "C0009104", action: "store",    loc: "STG-2 / SHELF-1",     by: "tech-ana" },
-  { ts: "14:21:09", tag: "C0009108", action: "review",   loc: "finance mismatch",    by: "system" },
-  { ts: "14:24:41", tag: "C0009114", action: "receive",  loc: "DOCK-2",              by: "tech-ray" },
-  { ts: "14:26:02", tag: "C0009114", action: "store",    loc: "STG-3 / SHELF-2",     by: "tech-ray" },
+  {
+    ts: "14:02:11",
+    tag: "C0009001",
+    action: "receive",
+    loc: "DOCK-1",
+    by: "tech-mike",
+  },
+  {
+    ts: "14:02:47",
+    tag: "C0009001",
+    action: "store",
+    loc: "STG-1 / SHELF-3",
+    by: "tech-mike",
+  },
+  {
+    ts: "14:08:03",
+    tag: "C0009001",
+    action: "deploy",
+    loc: "BAY-12 / B-04 / U21",
+    by: "tech-mike",
+  },
+  {
+    ts: "14:14:55",
+    tag: "C0009001",
+    action: "transfer",
+    loc: "tech-mike → tech-ana",
+    by: "tech-mike",
+  },
+  {
+    ts: "14:18:22",
+    tag: "C0009104",
+    action: "store",
+    loc: "STG-2 / SHELF-1",
+    by: "tech-ana",
+  },
+  {
+    ts: "14:21:09",
+    tag: "C0009108",
+    action: "review",
+    loc: "finance mismatch",
+    by: "system",
+  },
+  {
+    ts: "14:24:41",
+    tag: "C0009114",
+    action: "receive",
+    loc: "DOCK-2",
+    by: "tech-ray",
+  },
+  {
+    ts: "14:26:02",
+    tag: "C0009114",
+    action: "store",
+    loc: "STG-3 / SHELF-2",
+    by: "tech-ray",
+  },
 ];
 
 const rows = [
-  ["C0000101", "in_service",  "BAY-12 / B-04 / U21", "tech-ana",  "clean"],
-  ["C0000104", "stored",      "STG-1 / SHELF-3",     "inventory", "clean"],
-  ["C0000108", "rma_pending", "finance mismatch",    "manager",   "review"],
-  ["C0000110", "received",    "rack mismatch",       "tech-mike", "critical"],
-  ["C0000114", "in_service",  "BAY-08 / A-02 / U14", "tech-ray",  "clean"],
-  ["C0000119", "stored",      "STG-2 / SHELF-1",     "inventory", "clean"],
-  ["C0000122", "in_service",  "BAY-04 / C-01 / U07", "tech-mike", "clean"],
-  ["C0000128", "deploy_pend", "BAY-12 / B-05 / U03", "tech-ana",  "review"],
+  ["C0000101", "in_service", "BAY-12 / B-04 / U21", "tech-ana", "clean"],
+  ["C0000104", "stored", "STG-1 / SHELF-3", "inventory", "clean"],
+  ["C0000108", "rma_pending", "finance mismatch", "manager", "review"],
+  ["C0000110", "received", "rack mismatch", "tech-mike", "critical"],
+  ["C0000114", "in_service", "BAY-08 / A-02 / U14", "tech-ray", "clean"],
+  ["C0000119", "stored", "STG-2 / SHELF-1", "inventory", "clean"],
+  ["C0000122", "in_service", "BAY-04 / C-01 / U07", "tech-mike", "clean"],
+  ["C0000128", "deploy_pend", "BAY-12 / B-05 / U03", "tech-ana", "review"],
 ];
 
 const workflows = [
@@ -38,25 +88,41 @@ const workflows = [
     n: "01",
     title: "Receive",
     body: "Scan at the dock. The system creates an ops record, validates against the PO, and locks the tag to inbound state.",
-    bullets: ["PO line matched", "Tag locked to RECEIVED", "Dock + custodian recorded"],
+    bullets: [
+      "PO line matched",
+      "Tag locked to RECEIVED",
+      "Dock + custodian recorded",
+    ],
   },
   {
     n: "02",
     title: "Store",
     body: "Move from dock to shelf. Placement is written to the facilities system in the same scan event.",
-    bullets: ["Storage path validated", "Facilities row updated", "No finance write yet"],
+    bullets: [
+      "Storage path validated",
+      "Facilities row updated",
+      "No finance write yet",
+    ],
   },
   {
     n: "03",
     title: "Deploy",
     body: "Install into a rack. This is the only event that capitalizes the asset in finance — three writes, one transaction.",
-    bullets: ["Ops: in_service", "Facilities: rack assigned", "Finance: capitalized"],
+    bullets: [
+      "Ops: in_service",
+      "Facilities: rack assigned",
+      "Finance: capitalized",
+    ],
   },
   {
     n: "04",
     title: "Transfer",
     body: "Move custody between technicians. The ops record updates; facilities and finance are left alone.",
-    bullets: ["Custody chain extended", "Audit event written", "Idempotent on replay"],
+    bullets: [
+      "Custody chain extended",
+      "Audit event written",
+      "Idempotent on replay",
+    ],
   },
 ];
 
@@ -76,7 +142,7 @@ export function StartupLanding() {
   }, []);
 
   return (
-    <div className="relative mx-[calc(50%-50vw)] -my-6 w-screen max-w-[100vw] overflow-hidden bg-[#0a0a0a] text-[var(--text)]">
+    <div className="relative -mx-4 -my-6 w-[calc(100%+2rem)] overflow-hidden bg-[#0a0a0a] text-[var(--text)]">
       <Hero />
       <LiveBoard tick={tick} />
       <WorkflowsPinned />
@@ -96,14 +162,19 @@ function Hero() {
           <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)] animate-rise">
             ops · facilities · finance — one event stream
           </div>
-          <h1 className="display mt-7 text-4xl sm:text-5xl lg:text-[68px] animate-rise" style={{ animationDelay: "60ms" }}>
+          <h1
+            className="display mt-7 text-4xl sm:text-5xl lg:text-[68px] animate-rise"
+            style={{ animationDelay: "60ms" }}
+          >
             Asset records that match what&apos;s on the floor.
           </h1>
           <p
             className="mt-7 max-w-xl text-[15px] leading-relaxed text-[var(--text-dim)] sm:text-base animate-rise"
             style={{ animationDelay: "120ms" }}
           >
-            AssetOps reconciles operations, facilities, and finance against the same scan event. No more weekly spreadsheet sweeps. No more deploying gear that finance hasn&apos;t capitalized.
+            AssetOps reconciles operations, facilities, and finance against the
+            same scan event. No more weekly spreadsheet sweeps. No more
+            deploying gear that finance hasn&apos;t capitalized.
           </p>
 
           <div
@@ -116,7 +187,10 @@ function Hero() {
             >
               Start scan workflow
             </Link>
-            <Link href="/manager" className="text-[var(--text-dim)] hover:text-white transition">
+            <Link
+              href="/manager"
+              className="text-[var(--text-dim)] hover:text-white transition"
+            >
               Manager dashboard →
             </Link>
           </div>
@@ -131,7 +205,10 @@ function Hero() {
           </dl>
         </div>
 
-        <div className="relative animate-fade" style={{ animationDelay: "80ms", animationDuration: "360ms" }}>
+        <div
+          className="relative animate-fade"
+          style={{ animationDelay: "80ms", animationDuration: "360ms" }}
+        >
           <HeroScene />
         </div>
       </div>
@@ -143,12 +220,22 @@ function Stat({ n, l }: { n: string; l: string }) {
   return (
     <div>
       <div className="text-2xl font-medium tracking-tight text-white">{n}</div>
-      <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-[var(--text-mute)]">{l}</div>
+      <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-[var(--text-mute)]">
+        {l}
+      </div>
     </div>
   );
 }
 
-function CountStat({ to, suffix, l }: { to: number; suffix: string; l: string }) {
+function CountStat({
+  to,
+  suffix,
+  l,
+}: {
+  to: number;
+  suffix: string;
+  l: string;
+}) {
   const [n, setN] = useState(0);
   useEffect(() => {
     const start = performance.now();
@@ -170,7 +257,9 @@ function CountStat({ to, suffix, l }: { to: number; suffix: string; l: string })
         {n}
         {suffix}
       </div>
-      <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-[var(--text-mute)]">{l}</div>
+      <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-[var(--text-mute)]">
+        {l}
+      </div>
     </div>
   );
 }
@@ -197,20 +286,24 @@ function Console({ tick }: { tick: number }) {
       </div>
       <div className="divide-y divide-[var(--border)] font-mono text-[12px]">
         {visible.map((e, i) => (
-          <motion.div
+          <div
             key={`${tick}-${i}`}
-            initial={{ opacity: 0, x: -6 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.35, delay: i * 0.03 }}
-            className="grid grid-cols-[68px_82px_70px_1fr] gap-2 px-3 py-2"
+            className="console-row grid grid-cols-[68px_82px_70px_1fr] gap-2 px-3 py-2"
+            style={{ animationDelay: `${i * 30}ms` }}
           >
             <span className="text-[var(--text-mute)]">{e.ts}</span>
             <span className="text-white">{e.tag}</span>
-            <span className={e.action === "review" ? "text-amber-300" : "text-[var(--text-dim)]"}>
+            <span
+              className={
+                e.action === "review"
+                  ? "text-amber-300"
+                  : "text-[var(--text-dim)]"
+              }
+            >
               {e.action}
             </span>
             <span className="truncate text-[var(--text-dim)]">{e.loc}</span>
-          </motion.div>
+          </div>
         ))}
       </div>
       <div className="border-t hairline px-3 py-2 text-[11px] font-mono text-[var(--text-mute)]">
@@ -253,11 +346,17 @@ function LiveBoard({ tick }: { tick: number }) {
                 ["critical", "4", "rose"],
               ].map(([l, v, c]) => (
                 <div key={l} className="bg-[#0a0a0a] p-4">
-                  <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-mute)]">{l}</div>
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-mute)]">
+                    {l}
+                  </div>
                   <div
                     className={
                       "mt-2 text-2xl font-medium tracking-tight " +
-                      (c === "emerald" ? "text-emerald-300" : c === "amber" ? "text-amber-300" : "text-rose-300")
+                      (c === "emerald"
+                        ? "text-emerald-300"
+                        : c === "amber"
+                          ? "text-amber-300"
+                          : "text-rose-300")
                     }
                   >
                     {v}
@@ -299,16 +398,22 @@ function WorkflowsPinned() {
             </h2>
           </div>
           <p className="max-w-sm text-[14px] leading-relaxed text-[var(--text-dim)]">
-            Receive, store, deploy, transfer. Every event records which of the three downstream systems it touches.
+            Receive, store, deploy, transfer. Every event records which of the
+            three downstream systems it touches.
           </p>
         </div>
 
         <div className="mt-12 grid gap-px overflow-hidden border hairline bg-[var(--border)] md:grid-cols-2">
           {workflows.map((w) => (
-            <article key={w.title} className="card-sweep relative bg-[#0a0a0a] p-7">
+            <article
+              key={w.title}
+              className="card-sweep relative bg-[#0a0a0a] p-7"
+            >
               <div className="relative z-10">
                 <div className="flex items-baseline justify-between">
-                  <span className="font-mono text-[11px] text-[var(--text-mute)]">{w.n}</span>
+                  <span className="font-mono text-[11px] text-[var(--text-mute)]">
+                    {w.n}
+                  </span>
                   <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--text-mute)]">
                     flow
                   </span>
@@ -349,7 +454,8 @@ function Reconcile() {
             Ops vs. facilities vs. finance. Line by line.
           </h2>
           <p className="mt-5 text-[14px] leading-relaxed text-[var(--text-dim)]">
-            When a row diverges across the three systems, AssetOps shows the delta and the last writer. Managers fix the source, not the symptom.
+            When a row diverges across the three systems, AssetOps shows the
+            delta and the last writer. Managers fix the source, not the symptom.
           </p>
           <Link
             href="/manager/reconcile"
@@ -370,15 +476,22 @@ function Reconcile() {
               </div>
             ))}
           </div>
-          {([
-            ["C0000108", "rma_pending", "BAY-12 / B-04",   "—"],
-            ["C0000110", "received",    "—",                "capitalized"],
-            ["C0000128", "deploy_pend", "BAY-12 / B-05",   "—"],
-            ["C0000131", "in_service",  "BAY-04 / C-01",   "capitalized"],
-            ["C0000133", "in_service",  "BAY-04 / C-02",   "capitalized"],
-          ] as const).map((r) => (
-            <div key={r[0]} className="grid grid-cols-4 border-b hairline last:border-b-0 font-mono text-[12px]">
-              <span className="border-r hairline px-3 py-2.5 text-white">{r[0]}</span>
+          {(
+            [
+              ["C0000108", "rma_pending", "BAY-12 / B-04", "—"],
+              ["C0000110", "received", "—", "capitalized"],
+              ["C0000128", "deploy_pend", "BAY-12 / B-05", "—"],
+              ["C0000131", "in_service", "BAY-04 / C-01", "capitalized"],
+              ["C0000133", "in_service", "BAY-04 / C-02", "capitalized"],
+            ] as const
+          ).map((r) => (
+            <div
+              key={r[0]}
+              className="grid grid-cols-4 border-b hairline last:border-b-0 font-mono text-[12px]"
+            >
+              <span className="border-r hairline px-3 py-2.5 text-white">
+                {r[0]}
+              </span>
               <span className={cell(r[1])}>{r[1]}</span>
               <span className={cell(r[2])}>{r[2]}</span>
               <span className={cell(r[3], true)}>{r[3]}</span>
@@ -427,7 +540,10 @@ function Estate() {
               key={r[0]}
               className="grid grid-cols-[110px_120px_1fr_120px_90px] items-center gap-3 border-b hairline px-4 py-3 font-mono text-[12px] last:border-b-0 transition hover:bg-white/[0.015]"
             >
-              <Link href={`/manager/assets/${r[0]}`} className="text-white hover:underline">
+              <Link
+                href={`/manager/assets/${r[0]}`}
+                className="text-white hover:underline"
+              >
                 {r[0]}
               </Link>
               <span className="text-[var(--text-dim)]">{r[1]}</span>
@@ -468,7 +584,10 @@ function Cta() {
             >
               Technician console
             </Link>
-            <Link href="/dev/barcodes" className="text-[var(--text-dim)] hover:text-white transition">
+            <Link
+              href="/dev/barcodes"
+              className="text-[var(--text-dim)] hover:text-white transition"
+            >
               Print test barcodes →
             </Link>
           </div>

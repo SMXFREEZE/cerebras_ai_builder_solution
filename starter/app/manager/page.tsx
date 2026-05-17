@@ -40,10 +40,17 @@ export default async function ManagerLandingPage({
   const q = params.q?.trim().toLowerCase() ?? "";
   const page = Math.max(1, Number(params.page ?? "1") || 1);
 
-  const [assets, reconcileReport] = await Promise.all([
-    api.assets.list({ state, site, custodian }),
-    buildReconcileReport(),
+  const assetsPromise = api.assets.list();
+  const [allAssets, reconcileReport] = await Promise.all([
+    assetsPromise,
+    buildReconcileReport(assetsPromise),
   ]);
+  const assets = allAssets.filter((asset) => {
+    if (state && asset.state !== state) return false;
+    if (site && asset.location.site !== site) return false;
+    if (custodian && asset.custodian !== custodian) return false;
+    return true;
+  });
   const filtered = q
     ? assets.filter((asset) =>
         [
@@ -77,9 +84,12 @@ export default async function ManagerLandingPage({
           <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
             Manager
           </p>
-          <h1 className="display mt-3 text-3xl sm:text-4xl">Asset control tower</h1>
+          <h1 className="display mt-3 text-3xl sm:text-4xl">
+            Asset control tower
+          </h1>
           <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-[var(--text-dim)]">
-            Live estate, exceptions surfaced first. Drill into any asset for full event history.
+            Live estate, exceptions surfaced first. Drill into any asset for
+            full event history.
           </p>
         </div>
         <Link
@@ -100,7 +110,11 @@ export default async function ManagerLandingPage({
 
       <section className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="grid items-start gap-3 sm:grid-cols-4">
-          <Metric label="Filtered" value={filtered.length.toString()} delay={0} />
+          <Metric
+            label="Filtered"
+            value={filtered.length.toString()}
+            delay={0}
+          />
           <Metric
             label="Critical"
             value={reconcileReport.summary.critical.toString()}
@@ -167,7 +181,11 @@ export default async function ManagerLandingPage({
               className="input-dark"
             >
               {STATES.map((item) => (
-                <option key={item || "all"} value={item} className="bg-[#0a0a0a]">
+                <option
+                  key={item || "all"}
+                  value={item}
+                  className="bg-[#0a0a0a]"
+                >
                   {item ? item.replace(/_/g, " ") : "All states"}
                 </option>
               ))}
@@ -215,10 +233,26 @@ export default async function ManagerLandingPage({
       </form>
 
       <div className="grid gap-3 sm:grid-cols-4">
-        <Metric label="Received" value={countState(assets, "received").toString()} delay={0} />
-        <Metric label="Stored" value={countState(assets, "stored").toString()} delay={60} />
-        <Metric label="In service" value={countState(assets, "in_service").toString()} delay={120} />
-        <Metric label="RMA pending" value={countState(assets, "rma_pending").toString()} delay={180} />
+        <Metric
+          label="Received"
+          value={countState(assets, "received").toString()}
+          delay={0}
+        />
+        <Metric
+          label="Stored"
+          value={countState(assets, "stored").toString()}
+          delay={60}
+        />
+        <Metric
+          label="In service"
+          value={countState(assets, "in_service").toString()}
+          delay={120}
+        />
+        <Metric
+          label="RMA pending"
+          value={countState(assets, "rma_pending").toString()}
+          delay={180}
+        />
       </div>
 
       <div className="overflow-hidden rounded-xl border hairline">
@@ -226,19 +260,24 @@ export default async function ManagerLandingPage({
           <table className="min-w-full divide-y divide-[var(--border)] text-sm">
             <thead className="bg-white/[0.02] text-left">
               <tr>
-                {["Asset", "State", "Location", "Custodian", "Updated"].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3 text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--text-mute)]"
-                  >
-                    {h}
-                  </th>
-                ))}
+                {["Asset", "State", "Location", "Custodian", "Updated"].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--text-mute)]"
+                    >
+                      {h}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
               {visible.map((asset) => (
-                <tr key={asset.asset_tag} className="transition hover:bg-white/[0.025]">
+                <tr
+                  key={asset.asset_tag}
+                  className="transition hover:bg-white/[0.025]"
+                >
                   <td className="px-4 py-3">
                     <Link
                       className="font-mono text-[13px] text-white hover:underline decoration-white/40 underline-offset-4"
@@ -246,7 +285,9 @@ export default async function ManagerLandingPage({
                     >
                       {asset.asset_tag}
                     </Link>
-                    <div className="text-[11px] text-[var(--text-mute)]">{asset.serial}</div>
+                    <div className="text-[11px] text-[var(--text-mute)]">
+                      {asset.serial}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <StateBadge state={asset.state} />
@@ -254,7 +295,9 @@ export default async function ManagerLandingPage({
                   <td className="max-w-[320px] px-4 py-3 text-[var(--text-dim)]">
                     {locationLabel(asset.location)}
                   </td>
-                  <td className="px-4 py-3 text-[var(--text-dim)]">{asset.custodian}</td>
+                  <td className="px-4 py-3 text-[var(--text-dim)]">
+                    {asset.custodian}
+                  </td>
                   <td className="px-4 py-3 font-mono text-[12px] text-[var(--text-mute)]">
                     {formatDateTime(asset.updated_at)}
                   </td>
@@ -262,7 +305,10 @@ export default async function ManagerLandingPage({
               ))}
               {!visible.length ? (
                 <tr>
-                  <td className="px-4 py-10 text-center text-[var(--text-mute)]" colSpan={5}>
+                  <td
+                    className="px-4 py-10 text-center text-[var(--text-mute)]"
+                    colSpan={5}
+                  >
                     No assets match these filters.
                   </td>
                 </tr>
@@ -277,8 +323,18 @@ export default async function ManagerLandingPage({
           page {currentPage} / {pageCount}
         </span>
         <div className="flex gap-2">
-          <PageLink label="Previous" disabled={currentPage <= 1} params={nextParams} page={currentPage - 1} />
-          <PageLink label="Next" disabled={currentPage >= pageCount} params={nextParams} page={currentPage + 1} />
+          <PageLink
+            label="Previous"
+            disabled={currentPage <= 1}
+            params={nextParams}
+            page={currentPage - 1}
+          />
+          <PageLink
+            label="Next"
+            disabled={currentPage >= pageCount}
+            params={nextParams}
+            page={currentPage + 1}
+          />
         </div>
       </div>
     </div>
@@ -304,9 +360,12 @@ function StandupBrief({
         <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-emerald-200/75">
           60-second standup brief
         </div>
-        <div className="mt-3 text-2xl font-medium text-white">No exceptions need the room.</div>
+        <div className="mt-3 text-2xl font-medium text-white">
+          No exceptions need the room.
+        </div>
         <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-[var(--text-dim)]">
-          Clean inventory can stay quiet. Use the table below for lookup, not triage.
+          Clean inventory can stay quiet. Use the table below for lookup, not
+          triage.
         </p>
       </section>
     );
@@ -328,7 +387,8 @@ function StandupBrief({
             60-second standup brief
           </div>
           <h2 className="mt-3 text-2xl font-medium leading-tight text-white sm:text-3xl">
-            Start with <span className="font-mono">{topItem.tag}</span>: {topItem.title.toLowerCase()}.
+            Start with <span className="font-mono">{topItem.tag}</span>:{" "}
+            {topItem.title.toLowerCase()}.
           </h2>
           <p className="mt-3 max-w-2xl text-[13.5px] leading-relaxed text-[var(--text-dim)]">
             {topItem.recommendation}
@@ -369,7 +429,9 @@ function BriefFact({
   wide?: boolean;
 }) {
   return (
-    <div className={`rounded-lg border hairline bg-black/15 px-3 py-2 ${wide ? "md:col-span-2" : ""}`}>
+    <div
+      className={`rounded-lg border hairline bg-black/15 px-3 py-2 ${wide ? "md:col-span-2" : ""}`}
+    >
       <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--text-mute)]">
         {label}
       </div>
@@ -378,7 +440,15 @@ function BriefFact({
   );
 }
 
-function Field({ label, children, wide }: { label: string; children: React.ReactNode; wide?: boolean }) {
+function Field({
+  label,
+  children,
+  wide,
+}: {
+  label: string;
+  children: React.ReactNode;
+  wide?: boolean;
+}) {
   return (
     <label className={`block ${wide ? "md:col-span-2" : ""}`}>
       <span className="mb-1.5 block text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--text-mute)]">
@@ -419,11 +489,18 @@ function Metric({
           : "text-white";
 
   return (
-    <div className={`tile min-h-[132px] animate-rise ${toneClass}`} style={{ animationDelay: `${delay}ms` }}>
+    <div
+      className={`tile min-h-[132px] animate-rise ${toneClass}`}
+      style={{ animationDelay: `${delay}ms` }}
+    >
       <div className="text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--text-mute)]">
         {label}
       </div>
-      <div className={`mt-2 text-3xl font-medium tracking-tight tabular-nums ${valueClass}`}>{value}</div>
+      <div
+        className={`mt-2 text-3xl font-medium tracking-tight tabular-nums ${valueClass}`}
+      >
+        {value}
+      </div>
     </div>
   );
 }
@@ -444,7 +521,9 @@ function Signal({
           {label}
         </div>
         <div className="mt-2 text-[15px] font-medium text-white">{value}</div>
-        <p className="mt-1.5 text-[12.5px] leading-relaxed text-[var(--text-dim)]">{body}</p>
+        <p className="mt-1.5 text-[12.5px] leading-relaxed text-[var(--text-dim)]">
+          {body}
+        </p>
       </div>
     </div>
   );
@@ -481,7 +560,10 @@ function ActionItem({ item }: { item: ReconcileItem }) {
   );
 }
 
-function countState(assets: { state: AssetState }[], state: AssetState): number {
+function countState(
+  assets: { state: AssetState }[],
+  state: AssetState,
+): number {
   return assets.filter((asset) => asset.state === state).length;
 }
 
