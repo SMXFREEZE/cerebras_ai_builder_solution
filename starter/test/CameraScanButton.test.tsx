@@ -20,7 +20,12 @@ vi.mock("@zxing/browser", () => ({
 
 vi.mock("@zxing/library", () => ({
   BarcodeFormat: {
+    CODE_39: "CODE_39",
+    CODE_93: "CODE_93",
     CODE_128: "CODE_128",
+    DATA_MATRIX: "DATA_MATRIX",
+    ITF: "ITF",
+    PDF_417: "PDF_417",
     QR_CODE: "QR_CODE",
   },
   DecodeHintType: {
@@ -75,7 +80,7 @@ describe("<CameraScanButton>", () => {
     expect(onScan).not.toHaveBeenCalled();
   });
 
-  it("passes a decoded QR or Code 128 value into the scan workflow", async () => {
+  it("passes a decoded manufacturing barcode value into the scan workflow", async () => {
     scannerMock.decodeFromConstraints.mockImplementation(
       async (
         _constraints: unknown,
@@ -106,6 +111,17 @@ describe("<CameraScanButton>", () => {
 
     await waitFor(() => expect(onScan).toHaveBeenCalledWith("C0000901"));
     expect(scannerMock.BrowserMultiFormatReader).toHaveBeenCalledOnce();
+    const [[hints]] = scannerMock.BrowserMultiFormatReader.mock
+      .calls as unknown as [[Map<string, string[]>]];
+    expect(hints.get("POSSIBLE_FORMATS")).toEqual([
+      "QR_CODE",
+      "CODE_128",
+      "DATA_MATRIX",
+      "PDF_417",
+      "CODE_39",
+      "CODE_93",
+      "ITF",
+    ]);
     expect(scannerMock.stop).toHaveBeenCalled();
   });
 });

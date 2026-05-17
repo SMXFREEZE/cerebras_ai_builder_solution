@@ -63,6 +63,11 @@ export function CameraScanButton({
         hints.set(DecodeHintType.POSSIBLE_FORMATS, [
           BarcodeFormat.QR_CODE,
           BarcodeFormat.CODE_128,
+          BarcodeFormat.DATA_MATRIX,
+          BarcodeFormat.PDF_417,
+          BarcodeFormat.CODE_39,
+          BarcodeFormat.CODE_93,
+          BarcodeFormat.ITF,
         ]);
         const reader = new BrowserMultiFormatReader(hints, {
           delayBetweenScanAttempts: 120,
@@ -70,7 +75,9 @@ export function CameraScanButton({
           tryPlayVideoTimeout: 8000,
         });
 
-        setHint("Hold a QR or Code 128 barcode inside the frame.");
+        setHint(
+          "Hold a QR, Data Matrix, PDF417, or linear asset barcode inside the frame.",
+        );
 
         const controls = await reader.decodeFromConstraints(
           {
