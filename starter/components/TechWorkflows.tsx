@@ -25,6 +25,8 @@ import {
 } from "@/lib/locations";
 import type { Asset, AssetClass } from "@/lib/types";
 
+// This file owns only the per-flow state machines. Shared presentation,
+// request helpers, and status panels live in components/workflows/TechWorkflowUi.tsx.
 const RECEIVE_LOCATION = "Lab-Building-A/Receiving/DOCK-1";
 const STORE_LOCATION = "Lab-Building-A/Storage-1/SHELF-3";
 const DEPLOY_LOCATION = "Lab-Building-A/Bay-12/Aisle-3/B-04/U21";

@@ -9,6 +9,16 @@ AssetOps keeps operations, facilities, and finance aligned from the same scan ev
 
 This is not a generic inventory CRUD dashboard. It is a prototype for manufacturing traceability: fast scan flows, explicit writebacks, forensic event history, and a reconciliation report that says what to do instead of dumping a raw diff.
 
+## Start here
+
+If you are reviewing the code, read these in order:
+
+1. [`docs/CODE_MAP.md`](./docs/CODE_MAP.md) - architecture, request flow, and file map.
+2. [`starter/components/TechWorkflows.tsx`](./starter/components/TechWorkflows.tsx) - technician scan state machines.
+3. [`starter/lib/workflows.ts`](./starter/lib/workflows.ts) - server-side writeback rules.
+4. [`starter/lib/reconcile.ts`](./starter/lib/reconcile.ts) - ops/facilities/finance reconciliation logic.
+5. [`api/src/routes/scans.ts`](./api/src/routes/scans.ts) - local API scan validation and transitions.
+
 ## 60-second reviewer path
 
 If you only have a minute, click these in order:

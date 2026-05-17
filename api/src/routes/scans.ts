@@ -19,6 +19,8 @@ import { findTransition } from "../domain/state-machine.js";
 import { isDeployLocationComplete, isValidTag } from "../domain/validation.js";
 import { buildEvent } from "../domain/events.js";
 
+// Route handlers do HTTP validation and persistence. The business rules live
+// in domain/state-machine.ts and domain/events.ts so the scan paths stay legible.
 function invalidTag(reply: FastifyReply, assetTag: string) {
   return sendError(
     reply,

@@ -12,6 +12,8 @@ import {
 } from "@/lib/locations";
 import type { Asset } from "@/lib/types";
 
+// Shared UI and browser helpers for scanner workflows. Keeping these pieces
+// here leaves TechWorkflows.tsx focused on workflow state, not presentation.
 export type WorkflowAction = "receive" | "store" | "deploy" | "transfer";
 
 export type WorkflowSuccess = {
