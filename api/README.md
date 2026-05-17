@@ -54,6 +54,22 @@ pnpm --filter @asset-tracking/api build
 node dist/index.js
 ```
 
+## Standalone deployed API
+
+The submitted production app also includes a Vercel serverless API entrypoint at
+`api/[...path].js`. It mirrors the same challenge contract as the Fastify
+service, but stores shared demo state in Supabase so the deployed frontend can
+talk to a separately deployed API instead of an embedded fallback.
+
+Production requests should include:
+
+```text
+Authorization: Bearer <API_TOKEN>
+```
+
+`GET /api/health` stays public so the frontend and reviewers can confirm the
+deployment is using the standalone API.
+
 ## Environment
 
 | Variable | Default | Notes |
@@ -63,3 +79,6 @@ node dist/index.js
 | `API_DATA_DIR` | `./data` | Where the SQLite file lives. |
 | `API_DB_FILE` | `asset-tracking.db` | SQLite filename. |
 | `LOG_LEVEL` | `info` | Standard pino levels. |
+| `API_TOKEN` | unset | Optional bearer token for the standalone Vercel API. |
+| `SUPABASE_URL` | unset | Supabase project URL for the standalone Vercel API. |
+| `SUPABASE_ANON_KEY` | unset | Supabase anon key used by the standalone Vercel API. |

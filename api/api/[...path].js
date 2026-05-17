@@ -1,5 +1,14 @@
+// Standalone Vercel API used by the public submission. The local challenge API
+// remains the Fastify/SQLite service under src/, while this handler mirrors the
+// same scan contract against Supabase-backed shared state for production demos.
 const STATE_ID = "default";
-const TAG_RE = /^C\d{7}$/i;
+const TAG_RE = /^C\d{7}$/;
+const FINANCE_STATUSES = new Set(["capitalized", "pending_receipt", "retired", "impaired"]);
+const TRANSITIONS = {
+  received: { store: "stored", deploy: "in_service" },
+  stored: { deploy: "in_service" },
+  in_service: { store: "stored" },
+};
 
 function now() {
   return new Date().toISOString();
@@ -16,6 +25,21 @@ function json(res, status, data) {
 
 function error(res, status, code, message, details) {
   json(res, status, { error: details ? { code, message, details } : { code, message } });
+}
+
+function bearerToken(req) {
+  const header = req.headers.authorization ?? req.headers.Authorization ?? "";
+  const match = /^Bearer\s+(.+)$/i.exec(header);
+  return match?.[1] ?? null;
+}
+
+function rejectUnauthorized(req, res, root) {
+  if (root === "health") return false;
+  const expected = process.env.API_TOKEN;
+  if (!expected) return false;
+  if (bearerToken(req) === expected) return false;
+  error(res, 401, "unauthorized", "Missing or invalid API bearer token");
+  return true;
 }
 
 function loc(room, rack, ru, row = "Aisle-3") {
@@ -196,11 +220,17 @@ async function saveStore(data) {
   if (!response.ok) throw new Error(`State write failed: ${response.status} ${await response.text()}`);
 }
 
-async function readBody(req) {
+async function readBody(req, res) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
   const text = Buffer.concat(chunks).toString("utf8");
-  return text ? JSON.parse(text) : {};
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    error(res, 400, "invalid_json", "Request body must be valid JSON");
+    return null;
+  }
 }
 
 function findAsset(data, tag) {
@@ -211,6 +241,48 @@ function validateTag(res, tag) {
   if (TAG_RE.test(tag)) return false;
   error(res, 400, "invalid_tag_format", "asset_tag must match /^C\\d{7}$/", { asset_tag: tag });
   return true;
+}
+
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isNullableNonEmptyString(value) {
+  return value === null || isNonEmptyString(value);
+}
+
+function isLocation(value) {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      isNonEmptyString(value.site) &&
+      isNullableNonEmptyString(value.room) &&
+      isNullableNonEmptyString(value.row) &&
+      isNullableNonEmptyString(value.rack) &&
+      isNullableNonEmptyString(value.ru),
+  );
+}
+
+function validateScanShape(res, input, fields, locationRequired = true) {
+  const missing = fields.filter((field) => !isNonEmptyString(input?.[field]));
+  if (locationRequired && !isLocation(input?.location)) missing.push("location");
+  if (!missing.length) return false;
+  error(res, 422, "invalid_location", "Invalid scan payload", { missing });
+  return true;
+}
+
+function transitionFor(fromState, eventType) {
+  return TRANSITIONS[fromState]?.[eventType] ?? null;
+}
+
+function invalidTransition(res, asset, eventType, verb) {
+  return error(
+    res,
+    422,
+    "invalid_transition",
+    `Cannot ${verb} an asset in state '${asset.state}'`,
+    { from_state: asset.state, attempted_event: eventType },
+  );
 }
 
 function addEvent(asset, eventType, fromState, fromLocation, userId, scanPayload) {
@@ -239,6 +311,7 @@ export default async function handler(req, res) {
   try {
     const parts = routeParts(req);
     const [root, second, third] = parts;
+    if (rejectUnauthorized(req, res, root)) return;
 
     if (req.method === "GET" && root === "health") {
       return json(res, 200, { ok: true, version: "1.0.0-supabase" });
@@ -277,7 +350,11 @@ export default async function handler(req, res) {
 
     if (root === "mock" && second === "facilities" && third === "spaces") {
       if (req.method === "GET") return json(res, 200, data.facilities);
-      const update = await readBody(req);
+      const update = await readBody(req, res);
+      if (!update) return;
+      if (!isNonEmptyString(update.tagged_id) || !(update.rack_location === null || isNonEmptyString(update.rack_location))) {
+        return error(res, 422, "invalid_mock_payload", "Facilities update requires tagged_id and rack_location");
+      }
       data.facilities = data.facilities.filter((row) => row.tagged_id !== update.tagged_id);
       if (update.rack_location) {
         data.facilities.push({
@@ -293,7 +370,11 @@ export default async function handler(req, res) {
 
     if (root === "mock" && second === "finance" && third === "equipment") {
       if (req.method === "GET") return json(res, 200, data.finance);
-      const update = await readBody(req);
+      const update = await readBody(req, res);
+      if (!update) return;
+      if (!isNonEmptyString(update.tag) || !FINANCE_STATUSES.has(update.status)) {
+        return error(res, 422, "invalid_mock_payload", "Finance update requires tag and a valid status");
+      }
       data.finance = data.finance.filter((row) => row.tag !== update.tag);
       data.finance.push({
         finance_id: `EQ-${update.tag}`,
@@ -308,11 +389,19 @@ export default async function handler(req, res) {
     }
 
     if (root === "scans" && second && req.method === "POST") {
-      const input = await readBody(req);
+      const input = await readBody(req, res);
+      if (!input) return;
       const tag = String(input.asset_tag ?? "");
       if (validateTag(res, tag)) return;
 
       if (second === "receive") {
+        if (
+          validateScanShape(
+            res,
+            input,
+            ["serial", "model", "manufacturer", "asset_class", "user_id", "scan_payload"],
+          )
+        ) return;
         const existing = findAsset(data, tag);
         if (existing) {
           if (existing.serial !== input.serial) {
@@ -348,14 +437,14 @@ export default async function handler(req, res) {
 
       const asset = findAsset(data, tag);
       if (!asset) return error(res, 404, "unknown_asset", `Asset ${tag} not found`, { asset_tag: tag });
-      if (asset.state === "disposed" || asset.state === "unreceived") {
-        return error(res, 422, "invalid_transition", `Cannot scan an asset in state '${asset.state}'`, { from_state: asset.state });
-      }
 
       if (second === "store") {
+        if (validateScanShape(res, input, ["user_id", "scan_payload"])) return;
+        const next = transitionFor(asset.state, "store");
+        if (next !== "stored") return invalidTransition(res, asset, "store", "store");
         const fromState = asset.state;
         const fromLocation = asset.location;
-        asset.state = "stored";
+        asset.state = next;
         asset.location = input.location;
         asset.custodian = input.user_id;
         asset.updated_at = now();
@@ -365,12 +454,15 @@ export default async function handler(req, res) {
       }
 
       if (second === "deploy") {
+        if (validateScanShape(res, input, ["user_id", "scan_payload"])) return;
         if (!input.location?.site || !input.location?.room || !input.location?.rack || !input.location?.ru) {
           return error(res, 422, "incomplete_deploy_location", "Deploy requires site, room, rack, and ru", { location: input.location });
         }
+        const next = transitionFor(asset.state, "deploy");
+        if (next !== "in_service") return invalidTransition(res, asset, "deploy", "deploy");
         const fromState = asset.state;
         const fromLocation = asset.location;
-        asset.state = "in_service";
+        asset.state = next;
         asset.location = input.location;
         asset.custodian = input.user_id;
         asset.updated_at = now();
@@ -380,6 +472,10 @@ export default async function handler(req, res) {
       }
 
       if (second === "transfer") {
+        if (validateScanShape(res, input, ["to_custodian", "user_id", "scan_payload"], false)) return;
+        if (asset.state === "disposed" || asset.state === "unreceived") {
+          return invalidTransition(res, asset, "transfer_custody", "transfer custody of");
+        }
         if (asset.custodian === input.to_custodian) {
           return error(res, 422, "same_custodian", "to_custodian is already the current custodian", { custodian: asset.custodian });
         }

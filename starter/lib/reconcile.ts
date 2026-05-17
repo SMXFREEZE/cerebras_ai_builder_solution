@@ -308,6 +308,15 @@ export async function buildReconcileReport(): Promise<ReconcileReport> {
       return a.tag.localeCompare(b.tag);
     });
 
+  const summary: Record<ReconcileSeverity, number> = {
+    critical: 0,
+    review: 0,
+    watch: 0,
+  };
+  for (const item of items) {
+    summary[item.severity] += 1;
+  }
+
   return {
     generated_at: new Date().toISOString(),
     totals: {
@@ -316,11 +325,7 @@ export async function buildReconcileReport(): Promise<ReconcileReport> {
       finance_rows: finance.length,
       clean_ops_assets: cleanOpsAssets,
     },
-    summary: {
-      critical: items.filter((item) => item.severity === "critical").length,
-      review: items.filter((item) => item.severity === "review").length,
-      watch: items.filter((item) => item.severity === "watch").length,
-    },
+    summary,
     items,
   };
 }

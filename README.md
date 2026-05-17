@@ -137,7 +137,7 @@ Last full local QA pass:
 | Check | Result |
 | --- | --- |
 | API unit tests | 27 / 27 passed |
-| Starter tests | 13 / 13 passed |
+| Starter tests | 15 / 15 passed |
 | Lint | Passed |
 | Typecheck | Passed |
 | Production build | Passed |
@@ -146,6 +146,7 @@ Last full local QA pass:
 | Runtime overlays | None |
 | Horizontal overflow | None on desktop or mobile receive |
 | Public API deployment | Separate Vercel API, Supabase-backed shared state |
+| Public API hardening | Health public, mutation/list routes require bearer token, malformed JSON returns `invalid_json` |
 
 Browser happy path covered:
 

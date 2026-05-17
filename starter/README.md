@@ -47,9 +47,9 @@ The starter expects the upstream API at `API_BASE_URL` (default `http://localhos
 | `docs/tips.md` | Notes you'll want to read before coding. |
 | `docs/happy-path.md` | 10-step smoke test. Run before submitting. |
 
-## What you'll build
+## Implemented challenge surfaces
 
-These files are stubs you'll replace. Read [`../docs/CHALLENGE.md`](../docs/CHALLENGE.md) for the requirements behind each.
+These are the files reviewers should inspect for the challenge requirements.
 
 **Tech (mobile-first scan workflows):**
 
@@ -68,7 +68,7 @@ These files are stubs you'll replace. Read [`../docs/CHALLENGE.md`](../docs/CHAL
 | `app/manager/page.tsx` | Asset list. Filter by state / site / custodian. Links to detail. |
 | `app/manager/assets/[tag]/page.tsx` | Asset detail. Current state + event history. |
 | `app/manager/reconcile/page.tsx` | Renders the reconciliation report from the route handler below. |
-| `app/api/reconcile/route.ts` | **Server-side join.** Pulls ops, facilities, and finance. Classifies. Returns a structured report. Currently returns 501. |
+| `app/api/reconcile/route.ts` | **Server-side join.** Pulls ops, facilities, and finance. Classifies. Returns a structured report consumed by the manager UI. |
 
 **Barcode tooling (your call where it lives):**
 
@@ -88,7 +88,7 @@ A `README.md` at the root of your fork. Include:
 pnpm dev          # Next dev server
 pnpm build        # Production build
 pnpm start        # Run the production build
-pnpm typecheck    # tsc --noEmit
+pnpm typecheck    # next typegen && tsc --noEmit
 pnpm test         # Vitest
 pnpm lint         # next lint
 ```

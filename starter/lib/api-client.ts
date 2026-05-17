@@ -84,25 +84,25 @@ async function request<T>(
   }
 
   const headers: Record<string, string> = {};
-  if (body) headers["Content-Type"] = "application/json";
+  if (body !== undefined) headers["Content-Type"] = "application/json";
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetchImpl(url, {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
     cache: "no-store",
   });
 
   if (res.status === 204) return undefined as T;
 
   const text = await res.text();
-  const json: unknown = text ? JSON.parse(text) : null;
+  const json = parseJson(text);
 
   if (!res.ok) {
     const errBody = json as ApiErrorBody | null;
     const code = errBody?.error?.code ?? "unknown_error";
-    const message = errBody?.error?.message ?? `HTTP ${res.status}`;
+    const message = errBody?.error?.message ?? httpErrorMessage(res.status, text);
     throw new ApiError(res.status, code, message, errBody?.error?.details);
   }
 
@@ -113,11 +113,32 @@ async function rawGet<T>(absoluteUrl: string, cfg: ClientConfig): Promise<T> {
   const fetchImpl = cfg.fetchImpl ?? fetch;
   const res = await fetchImpl(absoluteUrl, { cache: "no-store" });
   const text = await res.text();
-  const json: unknown = text ? JSON.parse(text) : null;
+  const json = parseJson(text);
   if (!res.ok) {
-    throw new ApiError(res.status, "http_error", `HTTP ${res.status}`);
+    const errBody = json as ApiErrorBody | null;
+    throw new ApiError(
+      res.status,
+      errBody?.error?.code ?? "http_error",
+      errBody?.error?.message ?? httpErrorMessage(res.status, text),
+      errBody?.error?.details,
+    );
   }
   return json as T;
+}
+
+function parseJson(text: string): unknown {
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function httpErrorMessage(status: number, text: string): string {
+  const body = text.trim();
+  if (!body) return `HTTP ${status}`;
+  return `HTTP ${status}: ${body.slice(0, 180)}`;
 }
 
 export function createApiClient(cfg: ClientConfig = {}) {
