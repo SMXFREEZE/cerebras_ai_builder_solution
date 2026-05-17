@@ -75,7 +75,7 @@ These are the files reviewers should inspect for the challenge requirements.
 
 **Barcode tooling (your call where it lives):**
 
-`app/dev/barcodes/page.tsx` produces scannable Code 128 review labels for happy-path, drift, disposed, ghost, location, and badge cases. The camera scanner accepts the wider manufacturing set listed above, but workflow validation still rejects non-AssetOps payloads.
+`app/dev/barcodes/page.tsx` produces scannable QR + Code 128 review labels for happy-path, drift, disposed, ghost, location, and badge cases. Use QR for phone-camera scans, especially long locations. Use Code 128 for USB/Bluetooth handheld scanners. Workflow validation still rejects non-AssetOps payloads.
 
 **Your README:**
 

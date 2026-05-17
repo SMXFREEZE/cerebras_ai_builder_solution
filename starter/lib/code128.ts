@@ -165,5 +165,5 @@ export function code128Svg(value: string, height = 72): string {
     }
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(value)}"><rect width="${width}" height="${height}" fill="white" />${bars.join("")}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(value)}"><rect width="${width}" height="${height}" fill="white" />${bars.join("")}</svg>`;
 }

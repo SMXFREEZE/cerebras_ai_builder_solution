@@ -23,30 +23,30 @@ If you are reviewing the code, read these in order:
 
 If you only have a minute, click these in order:
 
-| Route                      | What to look for                                                                            |
-| -------------------------- | ------------------------------------------------------------------------------------------- |
-| `/`                        | Premium first impression: dark SaaS landing, Vanta fog, 3D asset graph, live event preview. |
-| `/tech/receive`            | Scanner autofocus, camera fallback, idempotent duplicate receive, serial conflict recovery. |
-| `/tech/store`              | Two-step asset -> shelf workflow with asset preview before mutation.                        |
-| `/tech/deploy`             | Missing-RU validation, then deploy with facilities and finance writebacks.                  |
-| `/tech/transfer`           | Two-sided custody handoff: logged-in user is implicit, receiving badge is explicit.         |
-| `/manager`                 | Standup brief first, metrics second, searchable/paginated asset table after that.           |
-| `/manager/assets/C0000101` | Full forensic event log for a seeded asset, newest first.                                   |
-| `/manager/reconcile`       | Three-way ops/facilities/finance report with manager-language categories.                   |
-| `/dev/barcodes`            | Printable Code 128 barcodes for happy path, drift, disposed, ghost, locations, and badges.  |
+| Route                      | What to look for                                                                              |
+| -------------------------- | --------------------------------------------------------------------------------------------- |
+| `/`                        | Premium first impression: dark SaaS landing, Vanta fog, 3D asset graph, live event preview.   |
+| `/tech/receive`            | Scanner autofocus, camera fallback, idempotent duplicate receive, serial conflict recovery.   |
+| `/tech/store`              | Two-step asset -> shelf workflow with asset preview before mutation.                          |
+| `/tech/deploy`             | Missing-RU validation, then deploy with facilities and finance writebacks.                    |
+| `/tech/transfer`           | Two-sided custody handoff: logged-in user is implicit, receiving badge is explicit.           |
+| `/manager`                 | Standup brief first, metrics second, searchable/paginated asset table after that.             |
+| `/manager/assets/C0000101` | Full forensic event log for a seeded asset, newest first.                                     |
+| `/manager/reconcile`       | Three-way ops/facilities/finance report with manager-language categories.                     |
+| `/dev/barcodes`            | Printable QR + Code 128 labels for happy path, drift, disposed, ghost, locations, and badges. |
 
 ## What is included
 
-| Area              | Implementation                                                                                           |
-| ----------------- | -------------------------------------------------------------------------------------------------------- |
-| Tech scan UX      | Four scanner-first workflows under `/tech`: receive, store, deploy, transfer.                            |
+| Area              | Implementation                                                                                                                           |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Tech scan UX      | Four scanner-first workflows under `/tech`: receive, store, deploy, transfer.                                                            |
 | Barcode support   | Keyboard scanner path is primary. Camera scanner uses `@zxing/browser` for QR, Code 128, Data Matrix, PDF417, Code 39, Code 93, and ITF. |
-| Writebacks        | Deploy writes facilities + finance. Store from `in_service` clears facilities. Other scans do not write. |
-| Reconciliation    | Server-side route handler at `/api/reconcile` joins operations, facilities, and finance.                 |
-| Manager dashboard | Standup brief, first actions, metrics, filters, pagination, asset detail, event log.                     |
-| Token safety      | Browser never receives `API_TOKEN`; all upstream calls go through server-side Next routes.               |
-| Testing surface   | `/dev/barcodes` ships scannable examples for the interesting review scenarios.                           |
-| Polish            | Vanta fog background, 3D hero scene, fast scanner flows, mobile-safe tech route.                         |
+| Writebacks        | Deploy writes facilities + finance. Store from `in_service` clears facilities. Other scans do not write.                                 |
+| Reconciliation    | Server-side route handler at `/api/reconcile` joins operations, facilities, and finance.                                                 |
+| Manager dashboard | Standup brief, first actions, metrics, filters, pagination, asset detail, event log.                                                     |
+| Token safety      | Browser never receives `API_TOKEN`; all upstream calls go through server-side Next routes.                                               |
+| Testing surface   | `/dev/barcodes` ships QR + Code 128 examples for the interesting review scenarios.                                                       |
+| Polish            | Vanta fog background, 3D hero scene, fast scanner flows, mobile-safe tech route.                                                         |
 
 The API in `api/` is deployed separately from the Next.js app. The public frontend points at that API through server-side route handlers, so the submitted app is not relying on an embedded fallback.
 
@@ -437,7 +437,7 @@ Deploy commits the ops state before facilities and finance writebacks. In produc
 | `starter/components/ReconcileView.tsx`            | Manager-language reconciliation UI.                                                                    |
 | `starter/app/manager/page.tsx`                    | Standup-first manager information design.                                                              |
 | `starter/app/manager/assets/[tag]/page.tsx`       | Forensic asset detail and event history.                                                               |
-| `starter/app/dev/barcodes/page.tsx`               | Scannable review/test matrix.                                                                          |
+| `starter/app/dev/barcodes/page.tsx`               | Scannable QR + Code 128 review/test matrix.                                                            |
 | `starter/components/VantaFogBackground.tsx`       | Lightweight animated background wrapper for the premium first impression.                              |
 | `starter/components/HeroScene.tsx`                | 3D wireframe hero scene.                                                                               |
 | `api/src/domain/events.ts`                        | Centralized audit-event factory shared by scan route mutations.                                        |
