@@ -38,7 +38,7 @@ If you only have a minute, click these in order:
 | Testing surface | `/dev/barcodes` ships scannable examples for the interesting review scenarios. |
 | Polish | Vanta fog background, 3D hero scene, fast scanner flows, mobile-safe tech route. |
 
-The hosted API in `api/` is kept as the challenge foundation. The product work lives in `starter/`.
+The API in `api/` is deployed separately from the Next.js app. The public frontend points at that API through server-side route handlers, so the submitted app is not relying on an embedded fallback.
 
 ## Run locally
 
@@ -60,6 +60,21 @@ Default local environment:
 ```text
 API_BASE_URL=http://localhost:8080/v1
 API_TOKEN=local-dev-token-1234567890
+```
+
+Production deployment:
+
+```text
+App: https://starter-plum-nine.vercel.app
+API: https://api-theta-five-98.vercel.app/api/v1
+Health: https://starter-plum-nine.vercel.app/api/upstream/health
+Demo: https://starter-plum-nine.vercel.app/demo
+```
+
+The expected production health response is:
+
+```json
+{ "ok": true, "version": "1.0.0-supabase" }
 ```
 
 Reset before a demo or Loom:
@@ -130,6 +145,7 @@ Last full local QA pass:
 | Console/page errors | No unexpected errors |
 | Runtime overlays | None |
 | Horizontal overflow | None on desktop or mobile receive |
+| Public API deployment | Separate Vercel API, Supabase-backed shared state |
 
 Browser happy path covered:
 
@@ -407,10 +423,28 @@ I used outside references as product pressure, not as copy-paste decoration:
 
 ## Submission notes
 
+Public app:
+
+```text
+https://starter-plum-nine.vercel.app
+```
+
 Public repo:
 
 ```text
 https://github.com/SMXFREEZE/cerebras_ai_builder_solution
+```
+
+Public API:
+
+```text
+https://api-theta-five-98.vercel.app/api
+```
+
+Video walkthrough:
+
+```text
+https://starter-plum-nine.vercel.app/demo
 ```
 
 Original challenge docs:
