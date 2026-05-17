@@ -594,19 +594,6 @@ function FocusBox({focus, localFrame}: {focus: Focus; localFrame: number}) {
       <div
         style={{
           position: "absolute",
-          left: `${focus.x - focus.w / 2}%`,
-          top: `${focus.y - focus.h / 2}%`,
-          width: `${focus.w}%`,
-          height: `${focus.h}%`,
-          borderRadius: 18,
-          border: `2px solid rgba(103, 232, 249, ${0.45 + glow * 0.4})`,
-          boxShadow: `0 0 ${30 + glow * 44}px rgba(103,232,249,${0.18 + glow * 0.26}), 0 0 0 999px rgba(2,6,23,0.04)`,
-          pointerEvents: "none",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
           left: `${focus.x}%`,
           top: `${focus.y}%`,
           width: 28 + glow * 18,
