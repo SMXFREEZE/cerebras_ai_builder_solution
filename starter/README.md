@@ -41,6 +41,7 @@ The starter expects the upstream API at `API_BASE_URL` (default `http://localhos
 | `lib/types.ts`                            | TypeScript mirror of the API schemas.                                                                                                                                                           |
 | `lib/auth.ts`                             | Cookie-based role switcher between `tech-jane` and `manager-paul`.                                                                                                                              |
 | `components/ScanInput.tsx`                | Auto-focus, Enter-to-submit, glove-sized input. Use it or replace it.                                                                                                                           |
+| `components/CameraScanButton.tsx`         | Real camera scanner path using `@zxing/browser`; supports QR, Code 128, Data Matrix, PDF417, Code 39, Code 93, and ITF.                                                                         |
 | `components/workflows/TechWorkflowUi.tsx` | Shared shell, status panels, and form primitives for scanner-first workflows.                                                                                                                   |
 | `components/RoleSwitcher.tsx`             | Header button to swap roles.                                                                                                                                                                    |
 | `app/api/upstream/[...path]/route.ts`     | Same-origin proxy that adds the bearer token and forwards to the separately deployed API.                                                                                                       |
@@ -74,7 +75,7 @@ These are the files reviewers should inspect for the challenge requirements.
 
 **Barcode tooling (your call where it lives):**
 
-A way to produce scannable barcodes for a handful of asset tags (pick interesting ones) + a handful of locations. Could be `app/dev/barcodes/page.tsx`, a printable PDF, a script under `scripts/`, whatever fits.
+`app/dev/barcodes/page.tsx` produces scannable Code 128 review labels for happy-path, drift, disposed, ghost, location, and badge cases. The camera scanner accepts the wider manufacturing set listed above, but workflow validation still rejects non-AssetOps payloads.
 
 **Your README:**
 

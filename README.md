@@ -40,7 +40,7 @@ If you only have a minute, click these in order:
 | Area              | Implementation                                                                                           |
 | ----------------- | -------------------------------------------------------------------------------------------------------- |
 | Tech scan UX      | Four scanner-first workflows under `/tech`: receive, store, deploy, transfer.                            |
-| Barcode support   | Keyboard scanner path is primary. Camera scanner is a progressive enhancement fallback.                  |
+| Barcode support   | Keyboard scanner path is primary. Camera scanner uses `@zxing/browser` for QR, Code 128, Data Matrix, PDF417, Code 39, Code 93, and ITF. |
 | Writebacks        | Deploy writes facilities + finance. Store from `in_service` clears facilities. Other scans do not write. |
 | Reconciliation    | Server-side route handler at `/api/reconcile` joins operations, facilities, and finance.                 |
 | Manager dashboard | Standup brief, first actions, metrics, filters, pagination, asset detail, event log.                     |
@@ -80,6 +80,16 @@ API: https://api-theta-five-98.vercel.app/api/v1
 Health: https://starter-plum-nine.vercel.app/api/upstream/health
 Demo: https://starter-plum-nine.vercel.app/demo
 ```
+
+The deployed app is wired with:
+
+```text
+API_BASE_URL=https://api-theta-five-98.vercel.app/api/v1
+APP_BASE_URL=https://starter-plum-nine.vercel.app
+```
+
+`API_TOKEN` remains server-only. The browser calls same-origin routes, and the
+Next.js server attaches the token before forwarding to the standalone API.
 
 The expected production health response is:
 
@@ -353,6 +363,13 @@ A USB/Bluetooth scanner behaves like a keyboard. If the input is focused, the sc
 
 Camera scanning depends on browser support, permission state, lighting, autofocus, label print quality, and device performance. It is valuable, but it should not be the only happy path.
 
+Implementation detail: the camera path uses `@zxing/browser`, lazy-loaded only
+when the technician opens the camera modal. The accepted decode formats are
+curated for manufacturing labels: QR, Code 128, Data Matrix, PDF417, Code 39,
+Code 93, and ITF. Retail/book formats such as EAN/UPC are intentionally not in
+the default set; even if a decoder read them, workflow validation would still
+reject non-AssetOps tags.
+
 Trade-off: the visual emphasis is on the keyboard scanner field, with camera beside it.
 
 Decision: correct for manufacturing. The most reliable path gets first-class treatment.
@@ -413,6 +430,7 @@ Deploy commits the ops state before facilities and finance writebacks. In produc
 | `starter/components/TechWorkflows.tsx`            | The four scanner workflow state machines: receive, store, deploy, transfer.                            |
 | `starter/components/workflows/TechWorkflowUi.tsx` | Reusable scanner shell, status panels, form primitives, and workflow request helpers.                  |
 | `starter/components/ScanInput.tsx`                | Autofocus and scanner refocus behavior. Small file, high product impact.                               |
+| `starter/components/CameraScanButton.tsx`         | Real browser-camera scanner integration using ZXing with curated manufacturing barcode formats.        |
 | `starter/app/api/workflows/[action]/route.ts`     | Server-side mutation orchestration and writeback rules.                                                |
 | `starter/app/api/reconcile/route.ts`              | Three-system join and report construction.                                                             |
 | `starter/lib/route-errors.ts`                     | Shared API-route error serialization so workflow and reconciliation failures return the same envelope. |
@@ -453,7 +471,7 @@ https://github.com/SMXFREEZE/cerebras_ai_builder_solution
 Public API:
 
 ```text
-https://api-theta-five-98.vercel.app/api
+https://api-theta-five-98.vercel.app/api/v1
 ```
 
 Video walkthrough:

@@ -57,6 +57,7 @@ same-origin Next.js route handlers.
 | Tech workflows            | `starter/components/TechWorkflows.tsx`            | Per-flow state machines for receive, store, deploy, transfer.     |
 | Shared workflow UI        | `starter/components/workflows/TechWorkflowUi.tsx` | Shell, status panels, form controls, asset preview, scan helpers. |
 | Scanner focus             | `starter/components/ScanInput.tsx`                | Autofocus and keyboard-scanner behavior.                          |
+| Camera scanner            | `starter/components/CameraScanButton.tsx`         | Lazy-loaded ZXing camera path for QR, Code 128, Data Matrix, PDF417, Code 39, Code 93, and ITF. |
 | Write orchestration       | `starter/lib/workflows.ts`                        | Deploy/store side effects across ops, facilities, and finance.    |
 | Workflow API route        | `starter/app/api/workflows/[action]/route.ts`     | Server boundary that receives browser workflow requests.          |
 | Reconciliation logic      | `starter/lib/reconcile.ts`                        | Joins ops, facilities, and finance into action-oriented findings. |
@@ -128,4 +129,12 @@ Expected response:
 
 ```json
 { "ok": true, "version": "1.0.0-supabase" }
+```
+
+Production frontend/API wiring:
+
+```text
+App: https://starter-plum-nine.vercel.app
+API: https://api-theta-five-98.vercel.app/api/v1
+Browser -> /api/upstream/* -> API_BASE_URL, with API_TOKEN attached server-side
 ```
