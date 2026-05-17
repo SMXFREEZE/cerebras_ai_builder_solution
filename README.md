@@ -157,14 +157,15 @@ Last full local QA pass:
 | Check                 | Result                                                                                          |
 | --------------------- | ----------------------------------------------------------------------------------------------- |
 | API unit tests        | 27 / 27 passed                                                                                  |
-| Starter tests         | 15 / 15 passed                                                                                  |
+| Starter tests         | 19 / 19 passed                                                                                  |
 | Lint                  | Passed                                                                                          |
 | Typecheck             | Passed                                                                                          |
 | Production build      | Passed                                                                                          |
 | Browser happy path    | Passed                                                                                          |
 | Console/page errors   | No unexpected errors                                                                            |
 | Runtime overlays      | None                                                                                            |
-| Horizontal overflow   | None on desktop or mobile receive                                                               |
+| Mobile scanner QA     | Camera dialog covers the full phone viewport; video, hint, and close button stay visible        |
+| Horizontal overflow   | None on desktop or mobile scanner surfaces                                                      |
 | Public API deployment | Separate Vercel API, Supabase-backed shared state                                               |
 | Public API hardening  | Health public, mutation/list routes require bearer token, malformed JSON returns `invalid_json` |
 
@@ -184,6 +185,7 @@ Browser happy path covered:
 12. Asset detail shows newest-first event history.
 13. Reconciliation no longer flags the deployed asset as drift.
 14. Mobile receive keeps the scanner input focused and camera button reachable.
+15. Mobile camera scanner opens as a full-viewport dialog with the video frame, hint, and close button visible.
 
 Final verified asset state after the happy path:
 
@@ -421,7 +423,7 @@ Deploy commits the ops state before facilities and finance writebacks. In produc
 | Full authentication           | Out of scope; the cookie role switcher is enough to demo tech and manager perspectives.                                  |
 | Bulk import/export            | Not part of the core scan/reconcile challenge.                                                                           |
 | Smooth scroll on tech screens | Native, predictable scroll is better for scanner-first tools. Motion belongs on the landing page, not the dock workflow. |
-| Custom barcode library        | The starter Code 128 renderer works and keeps dependencies smaller.                                                      |
+| Custom barcode stack          | The local Code 128 renderer is enough for handheld-scanner labels; QR generation uses a maintained package for phone cameras. |
 
 ## Files worth reviewing
 
