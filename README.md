@@ -13,30 +13,30 @@ This is not a generic inventory CRUD dashboard. It is a prototype for manufactur
 
 If you only have a minute, click these in order:
 
-| Route | What to look for |
-| --- | --- |
-| `/` | Premium first impression: dark SaaS landing, Vanta fog, 3D asset graph, live event preview. |
-| `/tech/receive` | Scanner autofocus, camera fallback, idempotent duplicate receive, serial conflict recovery. |
-| `/tech/store` | Two-step asset -> shelf workflow with asset preview before mutation. |
-| `/tech/deploy` | Missing-RU validation, then deploy with facilities and finance writebacks. |
-| `/tech/transfer` | Two-sided custody handoff: logged-in user is implicit, receiving badge is explicit. |
-| `/manager` | Standup brief first, metrics second, searchable/paginated asset table after that. |
-| `/manager/assets/C0000101` | Full forensic event log for a seeded asset, newest first. |
-| `/manager/reconcile` | Three-way ops/facilities/finance report with manager-language categories. |
-| `/dev/barcodes` | Printable Code 128 barcodes for happy path, drift, disposed, ghost, locations, and badges. |
+| Route                      | What to look for                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------------------- |
+| `/`                        | Premium first impression: dark SaaS landing, Vanta fog, 3D asset graph, live event preview. |
+| `/tech/receive`            | Scanner autofocus, camera fallback, idempotent duplicate receive, serial conflict recovery. |
+| `/tech/store`              | Two-step asset -> shelf workflow with asset preview before mutation.                        |
+| `/tech/deploy`             | Missing-RU validation, then deploy with facilities and finance writebacks.                  |
+| `/tech/transfer`           | Two-sided custody handoff: logged-in user is implicit, receiving badge is explicit.         |
+| `/manager`                 | Standup brief first, metrics second, searchable/paginated asset table after that.           |
+| `/manager/assets/C0000101` | Full forensic event log for a seeded asset, newest first.                                   |
+| `/manager/reconcile`       | Three-way ops/facilities/finance report with manager-language categories.                   |
+| `/dev/barcodes`            | Printable Code 128 barcodes for happy path, drift, disposed, ghost, locations, and badges.  |
 
 ## What is included
 
-| Area | Implementation |
-| --- | --- |
-| Tech scan UX | Four scanner-first workflows under `/tech`: receive, store, deploy, transfer. |
-| Barcode support | Keyboard scanner path is primary. Camera scanner is a progressive enhancement fallback. |
-| Writebacks | Deploy writes facilities + finance. Store from `in_service` clears facilities. Other scans do not write. |
-| Reconciliation | Server-side route handler at `/api/reconcile` joins operations, facilities, and finance. |
-| Manager dashboard | Standup brief, first actions, metrics, filters, pagination, asset detail, event log. |
-| Token safety | Browser never receives `API_TOKEN`; all upstream calls go through server-side Next routes. |
-| Testing surface | `/dev/barcodes` ships scannable examples for the interesting review scenarios. |
-| Polish | Vanta fog background, 3D hero scene, fast scanner flows, mobile-safe tech route. |
+| Area              | Implementation                                                                                           |
+| ----------------- | -------------------------------------------------------------------------------------------------------- |
+| Tech scan UX      | Four scanner-first workflows under `/tech`: receive, store, deploy, transfer.                            |
+| Barcode support   | Keyboard scanner path is primary. Camera scanner is a progressive enhancement fallback.                  |
+| Writebacks        | Deploy writes facilities + finance. Store from `in_service` clears facilities. Other scans do not write. |
+| Reconciliation    | Server-side route handler at `/api/reconcile` joins operations, facilities, and finance.                 |
+| Manager dashboard | Standup brief, first actions, metrics, filters, pagination, asset detail, event log.                     |
+| Token safety      | Browser never receives `API_TOKEN`; all upstream calls go through server-side Next routes.               |
+| Testing surface   | `/dev/barcodes` ships scannable examples for the interesting review scenarios.                           |
+| Polish            | Vanta fog background, 3D hero scene, fast scanner flows, mobile-safe tech route.                         |
 
 The API in `api/` is deployed separately from the Next.js app. The public frontend points at that API through server-side route handlers, so the submitted app is not relying on an embedded fallback.
 
@@ -134,19 +134,19 @@ pnpm demo:loom
 
 Last full local QA pass:
 
-| Check | Result |
-| --- | --- |
-| API unit tests | 27 / 27 passed |
-| Starter tests | 15 / 15 passed |
-| Lint | Passed |
-| Typecheck | Passed |
-| Production build | Passed |
-| Browser happy path | Passed |
-| Console/page errors | No unexpected errors |
-| Runtime overlays | None |
-| Horizontal overflow | None on desktop or mobile receive |
-| Public API deployment | Separate Vercel API, Supabase-backed shared state |
-| Public API hardening | Health public, mutation/list routes require bearer token, malformed JSON returns `invalid_json` |
+| Check                 | Result                                                                                          |
+| --------------------- | ----------------------------------------------------------------------------------------------- |
+| API unit tests        | 27 / 27 passed                                                                                  |
+| Starter tests         | 15 / 15 passed                                                                                  |
+| Lint                  | Passed                                                                                          |
+| Typecheck             | Passed                                                                                          |
+| Production build      | Passed                                                                                          |
+| Browser happy path    | Passed                                                                                          |
+| Console/page errors   | No unexpected errors                                                                            |
+| Runtime overlays      | None                                                                                            |
+| Horizontal overflow   | None on desktop or mobile receive                                                               |
+| Public API deployment | Separate Vercel API, Supabase-backed shared state                                               |
+| Public API hardening  | Health public, mutation/list routes require bearer token, malformed JSON returns `invalid_json` |
 
 Browser happy path covered:
 
@@ -296,14 +296,14 @@ Why server-side?
 
 Write rules implemented:
 
-| Scan | Operations | Facilities | Finance |
-| --- | --- | --- | --- |
-| Receive | Create/return asset | No write | No write |
-| Duplicate receive | Log duplicate event | No write | No write |
-| Store from `received` | Move to stored | No write | No write |
-| Store from `in_service` | Move to stored | Clear rack row | No write |
-| Deploy | Move to in service | Write rack row | Capitalize |
-| Transfer | Change custodian | No write | No write |
+| Scan                    | Operations          | Facilities     | Finance    |
+| ----------------------- | ------------------- | -------------- | ---------- |
+| Receive                 | Create/return asset | No write       | No write   |
+| Duplicate receive       | Log duplicate event | No write       | No write   |
+| Store from `received`   | Move to stored      | No write       | No write   |
+| Store from `in_service` | Move to stored      | Clear rack row | No write   |
+| Deploy                  | Move to in service  | Write rack row | Capitalize |
+| Transfer                | Change custodian    | No write       | No write   |
 
 ## Three calls I nearly made the other way.
 
@@ -387,29 +387,33 @@ Deploy commits the ops state before facilities and finance writebacks. In produc
 
 ## What I chose not to build
 
-| Not built | Why |
-| --- | --- |
-| Offline scan queue | Offline writes without conflict resolution can create worse drift. The prototype should fail loudly instead. |
-| RMA UI | The state machine supports it, but the brief says it is not required. |
-| Full authentication | Out of scope; the cookie role switcher is enough to demo tech and manager perspectives. |
-| Bulk import/export | Not part of the core scan/reconcile challenge. |
+| Not built                     | Why                                                                                                                      |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Offline scan queue            | Offline writes without conflict resolution can create worse drift. The prototype should fail loudly instead.             |
+| RMA UI                        | The state machine supports it, but the brief says it is not required.                                                    |
+| Full authentication           | Out of scope; the cookie role switcher is enough to demo tech and manager perspectives.                                  |
+| Bulk import/export            | Not part of the core scan/reconcile challenge.                                                                           |
 | Smooth scroll on tech screens | Native, predictable scroll is better for scanner-first tools. Motion belongs on the landing page, not the dock workflow. |
-| Custom barcode library | The starter Code 128 renderer works and keeps dependencies smaller. |
+| Custom barcode library        | The starter Code 128 renderer works and keeps dependencies smaller.                                                      |
 
 ## Files worth reviewing
 
-| Path | Why it matters |
-| --- | --- |
-| `starter/components/TechWorkflows.tsx` | The four scanner workflows and their step-by-step UX. |
-| `starter/components/ScanInput.tsx` | Autofocus and scanner refocus behavior. Small file, high product impact. |
-| `starter/app/api/workflows/[action]/route.ts` | Server-side mutation orchestration and writeback rules. |
-| `starter/app/api/reconcile/route.ts` | Three-system join and report construction. |
-| `starter/components/ReconcileView.tsx` | Manager-language reconciliation UI. |
-| `starter/app/manager/page.tsx` | Standup-first manager information design. |
-| `starter/app/manager/assets/[tag]/page.tsx` | Forensic asset detail and event history. |
-| `starter/app/dev/barcodes/page.tsx` | Scannable review/test matrix. |
-| `starter/components/VantaFogBackground.tsx` | Lightweight animated background wrapper for the premium first impression. |
-| `starter/components/HeroScene.tsx` | 3D wireframe hero scene. |
+| Path                                              | Why it matters                                                                                         |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `starter/components/TechWorkflows.tsx`            | The four scanner workflow state machines: receive, store, deploy, transfer.                            |
+| `starter/components/workflows/TechWorkflowUi.tsx` | Reusable scanner shell, status panels, form primitives, and workflow request helpers.                  |
+| `starter/components/ScanInput.tsx`                | Autofocus and scanner refocus behavior. Small file, high product impact.                               |
+| `starter/app/api/workflows/[action]/route.ts`     | Server-side mutation orchestration and writeback rules.                                                |
+| `starter/app/api/reconcile/route.ts`              | Three-system join and report construction.                                                             |
+| `starter/lib/route-errors.ts`                     | Shared API-route error serialization so workflow and reconciliation failures return the same envelope. |
+| `starter/components/ReconcileView.tsx`            | Manager-language reconciliation UI.                                                                    |
+| `starter/app/manager/page.tsx`                    | Standup-first manager information design.                                                              |
+| `starter/app/manager/assets/[tag]/page.tsx`       | Forensic asset detail and event history.                                                               |
+| `starter/app/dev/barcodes/page.tsx`               | Scannable review/test matrix.                                                                          |
+| `starter/components/VantaFogBackground.tsx`       | Lightweight animated background wrapper for the premium first impression.                              |
+| `starter/components/HeroScene.tsx`                | 3D wireframe hero scene.                                                                               |
+| `api/src/domain/events.ts`                        | Centralized audit-event factory shared by scan route mutations.                                        |
+| `api/api/[...path].js`                            | Standalone deployed Vercel API entrypoint backed by Supabase shared demo state.                        |
 
 ## Outside references used
 

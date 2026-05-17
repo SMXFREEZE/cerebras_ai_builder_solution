@@ -1,12 +1,12 @@
 import type { FastifyInstance } from "fastify";
-import { ulid } from "ulid";
+import type { FastifyReply } from "fastify";
 import {
   DeployScanInputSchema,
   ReceiveScanInputSchema,
   StoreScanInputSchema,
   TransferScanInputSchema,
 } from "../domain/types.js";
-import type { Asset, Event } from "../domain/types.js";
+import type { Asset, AssetState, EventType } from "../domain/types.js";
 import {
   getAsset,
   getDb,
@@ -17,8 +17,9 @@ import {
 import { sendError } from "../errors.js";
 import { findTransition } from "../domain/state-machine.js";
 import { isDeployLocationComplete, isValidTag } from "../domain/validation.js";
+import { buildEvent } from "../domain/events.js";
 
-function invalidTag(reply: Parameters<typeof sendError>[0], assetTag: string) {
+function invalidTag(reply: FastifyReply, assetTag: string) {
   return sendError(
     reply,
     400,
@@ -28,14 +29,37 @@ function invalidTag(reply: Parameters<typeof sendError>[0], assetTag: string) {
   );
 }
 
+function invalidPayload(reply: FastifyReply, label: string, issues: unknown) {
+  return sendError(reply, 422, "invalid_location", `Invalid ${label} payload`, {
+    issues,
+  });
+}
+
+function unknownAsset(reply: FastifyReply, assetTag: string) {
+  return sendError(reply, 404, "unknown_asset", `Asset ${assetTag} not found`);
+}
+
+function invalidTransition(
+  reply: FastifyReply,
+  fromState: AssetState,
+  eventType: EventType,
+  verb: string,
+) {
+  return sendError(
+    reply,
+    422,
+    "invalid_transition",
+    `Cannot ${verb} an asset in state '${fromState}'`,
+    { from_state: fromState, attempted_event: eventType },
+  );
+}
+
 export async function scansRoutes(app: FastifyInstance): Promise<void> {
   // POST /v1/scans/receive
   app.post("/v1/scans/receive", async (req, reply) => {
     const parse = ReceiveScanInputSchema.safeParse(req.body);
     if (!parse.success) {
-      return sendError(reply, 422, "invalid_location", "Invalid receive payload", {
-        issues: parse.error.issues,
-      });
+      return invalidPayload(reply, "receive", parse.error.issues);
     }
     const input = parse.data;
 
@@ -60,19 +84,20 @@ export async function scansRoutes(app: FastifyInstance): Promise<void> {
           },
         );
       }
-      const event: Event = {
-        id: ulid(),
-        asset_tag: existing.asset_tag,
-        event_type: "duplicate_receive",
-        from_state: existing.state,
-        to_state: existing.state,
-        from_location: existing.location,
-        to_location: existing.location,
-        user_id: input.user_id,
-        scan_payload: input.scan_payload,
-        timestamp: now,
-      };
-      insertEvent(db, event);
+      insertEvent(
+        db,
+        buildEvent({
+          assetTag: existing.asset_tag,
+          eventType: "duplicate_receive",
+          fromState: existing.state,
+          toState: existing.state,
+          fromLocation: existing.location,
+          toLocation: existing.location,
+          userId: input.user_id,
+          scanPayload: input.scan_payload,
+          timestamp: now,
+        }),
+      );
       return reply.code(200).send(existing);
     }
 
@@ -92,19 +117,20 @@ export async function scansRoutes(app: FastifyInstance): Promise<void> {
     };
     insertAsset(db, asset);
 
-    const event: Event = {
-      id: ulid(),
-      asset_tag: asset.asset_tag,
-      event_type: "receive",
-      from_state: null,
-      to_state: "received",
-      from_location: null,
-      to_location: input.location,
-      user_id: input.user_id,
-      scan_payload: input.scan_payload,
-      timestamp: now,
-    };
-    insertEvent(db, event);
+    insertEvent(
+      db,
+      buildEvent({
+        assetTag: asset.asset_tag,
+        eventType: "receive",
+        fromState: null,
+        toState: "received",
+        fromLocation: null,
+        toLocation: input.location,
+        userId: input.user_id,
+        scanPayload: input.scan_payload,
+        timestamp: now,
+      }),
+    );
     return reply.code(201).send(asset);
   });
 
@@ -112,9 +138,7 @@ export async function scansRoutes(app: FastifyInstance): Promise<void> {
   app.post("/v1/scans/store", async (req, reply) => {
     const parse = StoreScanInputSchema.safeParse(req.body);
     if (!parse.success) {
-      return sendError(reply, 422, "invalid_location", "Invalid store payload", {
-        issues: parse.error.issues,
-      });
+      return invalidPayload(reply, "store", parse.error.issues);
     }
     const input = parse.data;
     if (!isValidTag(input.asset_tag)) {
@@ -123,17 +147,11 @@ export async function scansRoutes(app: FastifyInstance): Promise<void> {
     const db = getDb();
     const asset = getAsset(db, input.asset_tag);
     if (!asset) {
-      return sendError(reply, 404, "unknown_asset", `Asset ${input.asset_tag} not found`);
+      return unknownAsset(reply, input.asset_tag);
     }
     const next = findTransition(asset.state, "store");
     if (next !== "stored") {
-      return sendError(
-        reply,
-        422,
-        "invalid_transition",
-        `Cannot store an asset in state '${asset.state}'`,
-        { from_state: asset.state, attempted_event: "store" },
-      );
+      return invalidTransition(reply, asset.state, "store", "store");
     }
     const now = new Date().toISOString();
     updateAsset(db, asset.asset_tag, {
@@ -142,19 +160,20 @@ export async function scansRoutes(app: FastifyInstance): Promise<void> {
       custodian: input.user_id,
       updated_at: now,
     });
-    const event: Event = {
-      id: ulid(),
-      asset_tag: asset.asset_tag,
-      event_type: "store",
-      from_state: asset.state,
-      to_state: "stored",
-      from_location: asset.location,
-      to_location: input.location,
-      user_id: input.user_id,
-      scan_payload: input.scan_payload,
-      timestamp: now,
-    };
-    insertEvent(db, event);
+    insertEvent(
+      db,
+      buildEvent({
+        assetTag: asset.asset_tag,
+        eventType: "store",
+        fromState: asset.state,
+        toState: "stored",
+        fromLocation: asset.location,
+        toLocation: input.location,
+        userId: input.user_id,
+        scanPayload: input.scan_payload,
+        timestamp: now,
+      }),
+    );
     return reply.send(getAsset(db, asset.asset_tag));
   });
 
@@ -162,9 +181,7 @@ export async function scansRoutes(app: FastifyInstance): Promise<void> {
   app.post("/v1/scans/deploy", async (req, reply) => {
     const parse = DeployScanInputSchema.safeParse(req.body);
     if (!parse.success) {
-      return sendError(reply, 422, "invalid_location", "Invalid deploy payload", {
-        issues: parse.error.issues,
-      });
+      return invalidPayload(reply, "deploy", parse.error.issues);
     }
     const input = parse.data;
     if (!isValidTag(input.asset_tag)) {
@@ -182,17 +199,11 @@ export async function scansRoutes(app: FastifyInstance): Promise<void> {
     const db = getDb();
     const asset = getAsset(db, input.asset_tag);
     if (!asset) {
-      return sendError(reply, 404, "unknown_asset", `Asset ${input.asset_tag} not found`);
+      return unknownAsset(reply, input.asset_tag);
     }
     const next = findTransition(asset.state, "deploy");
     if (next !== "in_service") {
-      return sendError(
-        reply,
-        422,
-        "invalid_transition",
-        `Cannot deploy an asset in state '${asset.state}'`,
-        { from_state: asset.state, attempted_event: "deploy" },
-      );
+      return invalidTransition(reply, asset.state, "deploy", "deploy");
     }
     const now = new Date().toISOString();
     updateAsset(db, asset.asset_tag, {
@@ -201,19 +212,20 @@ export async function scansRoutes(app: FastifyInstance): Promise<void> {
       custodian: input.user_id,
       updated_at: now,
     });
-    const event: Event = {
-      id: ulid(),
-      asset_tag: asset.asset_tag,
-      event_type: "deploy",
-      from_state: asset.state,
-      to_state: "in_service",
-      from_location: asset.location,
-      to_location: input.location,
-      user_id: input.user_id,
-      scan_payload: input.scan_payload,
-      timestamp: now,
-    };
-    insertEvent(db, event);
+    insertEvent(
+      db,
+      buildEvent({
+        assetTag: asset.asset_tag,
+        eventType: "deploy",
+        fromState: asset.state,
+        toState: "in_service",
+        fromLocation: asset.location,
+        toLocation: input.location,
+        userId: input.user_id,
+        scanPayload: input.scan_payload,
+        timestamp: now,
+      }),
+    );
     return reply.send(getAsset(db, asset.asset_tag));
   });
 
@@ -223,9 +235,7 @@ export async function scansRoutes(app: FastifyInstance): Promise<void> {
   app.post("/v1/scans/transfer", async (req, reply) => {
     const parse = TransferScanInputSchema.safeParse(req.body);
     if (!parse.success) {
-      return sendError(reply, 422, "invalid_location", "Invalid transfer payload", {
-        issues: parse.error.issues,
-      });
+      return invalidPayload(reply, "transfer", parse.error.issues);
     }
     const input = parse.data;
     if (!isValidTag(input.asset_tag)) {
@@ -234,15 +244,14 @@ export async function scansRoutes(app: FastifyInstance): Promise<void> {
     const db = getDb();
     const asset = getAsset(db, input.asset_tag);
     if (!asset) {
-      return sendError(reply, 404, "unknown_asset", `Asset ${input.asset_tag} not found`);
+      return unknownAsset(reply, input.asset_tag);
     }
     if (asset.state === "disposed" || asset.state === "unreceived") {
-      return sendError(
+      return invalidTransition(
         reply,
-        422,
-        "invalid_transition",
-        `Cannot transfer custody of an asset in state '${asset.state}'`,
-        { from_state: asset.state, attempted_event: "transfer_custody" },
+        asset.state,
+        "transfer_custody",
+        "transfer custody of",
       );
     }
     if (input.to_custodian === asset.custodian) {
@@ -261,19 +270,20 @@ export async function scansRoutes(app: FastifyInstance): Promise<void> {
       custodian: input.to_custodian,
       updated_at: now,
     });
-    const event: Event = {
-      id: ulid(),
-      asset_tag: asset.asset_tag,
-      event_type: "transfer_custody",
-      from_state: asset.state,
-      to_state: asset.state,
-      from_location: asset.location,
-      to_location: asset.location,
-      user_id: input.user_id,
-      scan_payload: input.scan_payload,
-      timestamp: now,
-    };
-    insertEvent(db, event);
+    insertEvent(
+      db,
+      buildEvent({
+        assetTag: asset.asset_tag,
+        eventType: "transfer_custody",
+        fromState: asset.state,
+        toState: asset.state,
+        fromLocation: asset.location,
+        toLocation: asset.location,
+        userId: input.user_id,
+        scanPayload: input.scan_payload,
+        timestamp: now,
+      }),
+    );
     return reply.send(getAsset(db, asset.asset_tag));
   });
 }

@@ -1,6 +1,8 @@
 # Asset tracking API
 
-The local backend that powers the take-home challenge. Candidates make HTTP requests against this; they don't read or modify its code.
+The backend contract for AssetOps. Local development uses the Fastify/SQLite
+service under `src/`; the public submission deploys the Vercel serverless
+entrypoint under `api/[...path].js` so the frontend talks to a separate API.
 
 ## Running
 
@@ -47,6 +49,10 @@ Two suites:
 - `test/state-machine.test.ts` — every allowed transition succeeds; every undefined transition is rejected.
 - `test/scans.test.ts` — receive (new, duplicate, mismatched serial), store, deploy, missing asset, reset.
 
+The scan routes share the transition table in `src/domain/state-machine.ts`
+and the audit-event factory in `src/domain/events.ts`, keeping state movement
+and event recording in the domain layer instead of duplicating it per route.
+
 ## Build for production
 
 ```bash
@@ -72,13 +78,13 @@ deployment is using the standalone API.
 
 ## Environment
 
-| Variable | Default | Notes |
-|---|---|---|
-| `PORT` | `8080` | |
-| `HOST` | `0.0.0.0` | |
-| `API_DATA_DIR` | `./data` | Where the SQLite file lives. |
-| `API_DB_FILE` | `asset-tracking.db` | SQLite filename. |
-| `LOG_LEVEL` | `info` | Standard pino levels. |
-| `API_TOKEN` | unset | Optional bearer token for the standalone Vercel API. |
-| `SUPABASE_URL` | unset | Supabase project URL for the standalone Vercel API. |
-| `SUPABASE_ANON_KEY` | unset | Supabase anon key used by the standalone Vercel API. |
+| Variable            | Default             | Notes                                                |
+| ------------------- | ------------------- | ---------------------------------------------------- |
+| `PORT`              | `8080`              |                                                      |
+| `HOST`              | `0.0.0.0`           |                                                      |
+| `API_DATA_DIR`      | `./data`            | Where the SQLite file lives.                         |
+| `API_DB_FILE`       | `asset-tracking.db` | SQLite filename.                                     |
+| `LOG_LEVEL`         | `info`              | Standard pino levels.                                |
+| `API_TOKEN`         | unset               | Optional bearer token for the standalone Vercel API. |
+| `SUPABASE_URL`      | unset               | Supabase project URL for the standalone Vercel API.  |
+| `SUPABASE_ANON_KEY` | unset               | Supabase anon key used by the standalone Vercel API. |

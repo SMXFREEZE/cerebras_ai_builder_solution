@@ -21,13 +21,6 @@ import type {
 const BROWSER_BASE = "/api/upstream";
 const SERVER_DEFAULT_BASE = "http://localhost:8080/v1";
 
-function localServerBase(): string {
-  if (process.env.API_BASE_URL !== "local") return "";
-  if (process.env.APP_BASE_URL) return `${process.env.APP_BASE_URL.replace(/\/$/, "")}/api/upstream`;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}/api/upstream`;
-  return "http://localhost:3000/api/upstream";
-}
-
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -53,8 +46,6 @@ function isServer(): boolean {
 function getBaseUrl(cfg: ClientConfig): string {
   if (cfg.baseUrl) return cfg.baseUrl.replace(/\/$/, "");
   if (isServer()) {
-    const local = localServerBase();
-    if (local) return local;
     return (process.env.API_BASE_URL ?? SERVER_DEFAULT_BASE).replace(/\/$/, "");
   }
   return BROWSER_BASE;
@@ -77,7 +68,7 @@ async function request<T>(
   const fetchImpl = cfg.fetchImpl ?? fetch;
   const token = getToken(cfg);
 
-  if (isServer() && !token && process.env.API_BASE_URL !== "local") {
+  if (isServer() && !token) {
     throw new Error(
       "Missing API_TOKEN. Set it in starter/.env (server-only — do not use NEXT_PUBLIC_).",
     );
@@ -102,7 +93,8 @@ async function request<T>(
   if (!res.ok) {
     const errBody = json as ApiErrorBody | null;
     const code = errBody?.error?.code ?? "unknown_error";
-    const message = errBody?.error?.message ?? httpErrorMessage(res.status, text);
+    const message =
+      errBody?.error?.message ?? httpErrorMessage(res.status, text);
     throw new ApiError(res.status, code, message, errBody?.error?.details);
   }
 
