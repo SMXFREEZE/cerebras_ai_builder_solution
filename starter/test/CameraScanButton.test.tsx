@@ -38,6 +38,7 @@ const originalMediaDevices = navigator.mediaDevices;
 describe("<CameraScanButton>", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    document.body.style.overflow = "";
     Object.defineProperty(navigator, "mediaDevices", {
       configurable: true,
       value: originalMediaDevices,
@@ -58,6 +59,9 @@ describe("<CameraScanButton>", () => {
     );
 
     expect(screen.getByText("Camera scanner")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Camera scanner" }))
+      .toHaveClass("h-[100dvh]");
+    expect(document.body.style.overflow).toBe("hidden");
     expect(screen.getByText("Scan code")).toBeInTheDocument();
     expect(
       await screen.findByText(
@@ -77,6 +81,7 @@ describe("<CameraScanButton>", () => {
     fireEvent.click(screen.getByRole("button", { name: /close/i }));
 
     expect(screen.queryByText("Camera scanner")).not.toBeInTheDocument();
+    expect(document.body.style.overflow).toBe("");
     expect(onScan).not.toHaveBeenCalled();
   });
 

@@ -2,6 +2,7 @@
 
 import type { IScannerControls } from "@zxing/browser";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export function CameraScanButton({
   onScan,
@@ -15,6 +16,7 @@ export function CameraScanButton({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState("Hold the code inside the frame.");
+  const [mounted, setMounted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
   const capturedRef = useRef(false);
@@ -23,6 +25,32 @@ export function CameraScanButton({
   useEffect(() => {
     onScanRef.current = onScan;
   }, [onScan]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -130,6 +158,56 @@ export function CameraScanButton({
     };
   }, [open]);
 
+  const scannerDialog = open ? (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Camera scanner"
+      className="fixed inset-0 z-[100] h-[100dvh] overflow-hidden bg-[#030712]/95 px-3 backdrop-blur-xl sm:px-4"
+      style={{
+        paddingTop: "max(12px, env(safe-area-inset-top))",
+        paddingBottom: "max(12px, env(safe-area-inset-bottom))",
+      }}
+    >
+      <div className="mx-auto grid h-full max-w-md grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-2 sm:gap-3">
+        <div className="flex items-center justify-between gap-3 text-white">
+          <div className="min-w-0">
+            <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-cyan-100/60 sm:text-[11px]">
+              Camera scanner
+            </div>
+            <div className="mt-1 text-sm font-semibold">Scan code</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="min-h-[44px] shrink-0 rounded-lg border border-white/20 bg-white/[0.04] px-4 text-sm font-semibold transition hover:bg-white/[0.08]"
+          >
+            Close
+          </button>
+        </div>
+        <div className="relative min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
+          <video
+            ref={videoRef}
+            muted
+            playsInline
+            className="h-full w-full object-cover"
+          />
+          <div className="pointer-events-none absolute inset-5 rounded-2xl border border-cyan-100/70 shadow-[0_0_0_999px_rgba(0,0,0,0.32)] sm:inset-8">
+            <div className="scan-line absolute left-4 right-4 top-1/2 h-0.5 bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.9)]" />
+          </div>
+        </div>
+        <div className="rounded-xl border border-white/15 bg-white/[0.06] p-3 text-[13px] leading-relaxed text-white sm:text-sm">
+          {hint}
+        </div>
+        {error ? (
+          <div className="rounded-xl border border-amber-300/25 bg-amber-300/[0.08] p-3 text-[13px] leading-relaxed text-amber-100 sm:text-sm">
+            {error}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  ) : null;
+
   return (
     <>
       <button
@@ -142,46 +220,9 @@ export function CameraScanButton({
         {label}
       </button>
 
-      {open ? (
-        <div className="fixed inset-0 z-50 bg-[#030712]/95 p-4 backdrop-blur-xl">
-          <div className="mx-auto flex h-full max-w-md flex-col gap-3">
-            <div className="flex items-center justify-between text-white">
-              <div>
-                <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-cyan-100/60">
-                  Camera scanner
-                </div>
-                <div className="mt-1 text-sm font-semibold">Scan code</div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="min-h-[44px] rounded-lg border border-white/20 bg-white/[0.04] px-4 text-sm font-semibold transition hover:bg-white/[0.08]"
-              >
-                Close
-              </button>
-            </div>
-            <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
-              <video
-                ref={videoRef}
-                muted
-                playsInline
-                className="h-full w-full object-cover"
-              />
-              <div className="pointer-events-none absolute inset-8 rounded-2xl border border-cyan-100/70 shadow-[0_0_0_999px_rgba(0,0,0,0.32)]">
-                <div className="scan-line absolute left-4 right-4 top-1/2 h-0.5 bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.9)]" />
-              </div>
-            </div>
-            <div className="rounded-xl border border-white/15 bg-white/[0.06] p-3 text-sm text-white">
-              {hint}
-            </div>
-            {error ? (
-              <div className="rounded-xl border border-amber-300/25 bg-amber-300/[0.08] p-3 text-sm text-amber-100">
-                {error}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+      {mounted && scannerDialog
+        ? createPortal(scannerDialog, document.body)
+        : null}
     </>
   );
 }
