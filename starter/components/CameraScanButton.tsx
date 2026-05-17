@@ -1,21 +1,7 @@
 "use client";
 
+import type { IScannerControls } from "@zxing/browser";
 import { useEffect, useRef, useState } from "react";
-
-type DetectedBarcode = { rawValue: string };
-type BarcodeDetectorInstance = {
-  detect(source: HTMLVideoElement): Promise<DetectedBarcode[]>;
-};
-type BarcodeDetectorConstructor = {
-  new (options?: { formats?: string[] }): BarcodeDetectorInstance;
-  getSupportedFormats?: () => Promise<string[]>;
-};
-
-declare global {
-  interface Window {
-    BarcodeDetector?: BarcodeDetectorConstructor;
-  }
-}
 
 export function CameraScanButton({
   onScan,
@@ -30,81 +16,102 @@ export function CameraScanButton({
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState("Hold the code inside the frame.");
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const frameRef = useRef<number | null>(null);
+  const controlsRef = useRef<IScannerControls | null>(null);
   const capturedRef = useRef(false);
+  const onScanRef = useRef(onScan);
+
+  useEffect(() => {
+    onScanRef.current = onScan;
+  }, [onScan]);
 
   useEffect(() => {
     if (!open) return;
 
     let cancelled = false;
+    const stopScanner = (): void => {
+      controlsRef.current?.stop();
+      controlsRef.current = null;
+    };
 
     async function start(): Promise<void> {
       setError(null);
-      setHint("Hold the code inside the frame.");
+      setHint("Starting camera scanner...");
       capturedRef.current = false;
-      if (!window.BarcodeDetector) {
-        setError("Camera scanning needs Chrome or Edge. The scanner input is ready.");
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setError(
+          "Camera scanning needs a browser with camera access. The scanner input is ready.",
+        );
         return;
       }
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-          audio: false,
-        });
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-        streamRef.current = stream;
         const video = videoRef.current;
         if (!video) return;
-        video.srcObject = stream;
-        await video.play();
 
-        const requestedFormats = ["qr_code", "code_128"];
-        const supportedFormats =
-          (await window.BarcodeDetector.getSupportedFormats?.()) ??
-          requestedFormats;
-        const formats = requestedFormats.filter((format) =>
-          supportedFormats.includes(format),
-        );
-        if (!formats.length) {
-          setError("This browser camera cannot read QR or Code128 codes.");
-          return;
-        }
+        const [
+          { BrowserMultiFormatReader },
+          { BarcodeFormat, DecodeHintType },
+        ] = await Promise.all([
+          import("@zxing/browser"),
+          import("@zxing/library"),
+        ]);
 
-        const detector = new window.BarcodeDetector({
-          formats,
+        if (cancelled) return;
+
+        const hints = new Map();
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+          BarcodeFormat.QR_CODE,
+          BarcodeFormat.CODE_128,
+        ]);
+        const reader = new BrowserMultiFormatReader(hints, {
+          delayBetweenScanAttempts: 120,
+          delayBetweenScanSuccess: 250,
+          tryPlayVideoTimeout: 8000,
         });
 
-        const tick = async (): Promise<void> => {
-          const currentVideo = videoRef.current;
-          if (!currentVideo || cancelled) return;
-          try {
-            const codes = await detector.detect(currentVideo);
-            const first = codes[0]?.rawValue?.trim();
-            if (first && !capturedRef.current) {
+        setHint("Hold a QR or Code 128 barcode inside the frame.");
+
+        const controls = await reader.decodeFromConstraints(
+          {
+            video: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+            audio: false,
+          },
+          video,
+          (result, err, scanControls) => {
+            if (capturedRef.current || cancelled) return;
+
+            const value = result?.getText().trim();
+            if (value) {
               capturedRef.current = true;
               setHint("Captured. Closing camera...");
-              onScan(first);
+              scanControls.stop();
+              onScanRef.current(value);
               setOpen(false);
               return;
             }
-          } catch {
-            setError("Point the camera at one clear code.");
-          }
-          frameRef.current = window.requestAnimationFrame(() => {
-            void tick();
-          });
-        };
 
-        frameRef.current = window.requestAnimationFrame(() => {
-          void tick();
-        });
+            if (err && err.name !== "NotFoundException") {
+              setHint("Move closer and keep one clear code inside the frame.");
+            }
+          },
+        );
+
+        if (cancelled) {
+          controls.stop();
+          return;
+        }
+        controlsRef.current = controls;
       } catch {
-        setError("Camera permission was not available. The scanner input is ready.");
+        if (!cancelled) {
+          setError(
+            "Camera permission or scanner startup was not available. The scanner input is ready.",
+          );
+        }
       }
     }
 
@@ -112,11 +119,9 @@ export function CameraScanButton({
 
     return () => {
       cancelled = true;
-      if (frameRef.current) window.cancelAnimationFrame(frameRef.current);
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
+      stopScanner();
     };
-  }, [onScan, open]);
+  }, [open]);
 
   return (
     <>
