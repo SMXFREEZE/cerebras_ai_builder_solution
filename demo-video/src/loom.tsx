@@ -30,7 +30,6 @@ type BaseScene = {
   body: string;
   points: string[];
   focus: Focus;
-  footnote?: string;
 };
 
 type LiveScene = BaseScene & {
@@ -57,7 +56,6 @@ const scenes: Scene[] = [
     body: "The demo starts inside the real product after a reset. The first screen frames the manufacturing problem before we touch a single form.",
     points: ["Playwright-captured product state", "No static mockup", "Problem before feature tour"],
     focus: {x: 46, y: 45, w: 72, h: 62, zoom: 1.08},
-    footnote: "YC-style rule used here: make the product clear early, then prove it works.",
   },
   {
     kind: "lens",
@@ -128,7 +126,6 @@ const scenes: Scene[] = [
     body: "I nearly wrote a generic 'serial mismatch' error. This version gives the tech the two values they need to fix the physical label or the receiving record.",
     points: ["Explains what happened", "Names the bad value", "Turns an error into next action"],
     focus: {x: 50, y: 87, w: 66, h: 14, zoom: 1.08},
-    footnote: "This is the microcopy I would call out in the Loom.",
   },
   {
     kind: "live",
@@ -329,7 +326,6 @@ const scenes: Scene[] = [
     body: "The pitch is simple: fewer skipped scans, fewer silent writeback bugs, and a reconciliation report a manufacturing manager can act on.",
     points: ["Tech workflow", "Manager workflow", "Three-system reconciliation"],
     focus: {x: 54, y: 74, w: 66, h: 36, zoom: 1.34},
-    footnote: "Repo, public URL, and Loom link are the three submission fields.",
   },
 ];
 
@@ -711,26 +707,6 @@ function CaptionPanel({
           ))}
         </div>
       </div>
-      {scene.footnote ? <Footnote text={scene.footnote} /> : null}
-    </div>
-  );
-}
-
-function Footnote({text}: {text: string}) {
-  return (
-    <div
-      style={{
-        marginTop: 16,
-        padding: "14px 16px",
-        borderRadius: 16,
-        color: "rgba(226,232,240,0.74)",
-        border: "1px solid rgba(52,211,153,0.24)",
-        background: "rgba(5, 46, 22, 0.35)",
-        fontSize: 16,
-        lineHeight: 1.35,
-      }}
-    >
-      {text}
     </div>
   );
 }
