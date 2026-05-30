@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { SceneFallback } from "./SceneFallback";
@@ -14,73 +14,25 @@ const HeroScene = dynamic(
 );
 
 const events = [
-  {
-    ts: "14:02:11",
-    tag: "C0009001",
-    action: "receive",
-    loc: "DOCK-1",
-    by: "tech-mike",
-  },
-  {
-    ts: "14:02:47",
-    tag: "C0009001",
-    action: "store",
-    loc: "STG-1 / SHELF-3",
-    by: "tech-mike",
-  },
-  {
-    ts: "14:08:03",
-    tag: "C0009001",
-    action: "deploy",
-    loc: "BAY-12 / B-04 / U21",
-    by: "tech-mike",
-  },
-  {
-    ts: "14:14:55",
-    tag: "C0009001",
-    action: "transfer",
-    loc: "tech-mike → tech-ana",
-    by: "tech-mike",
-  },
-  {
-    ts: "14:18:22",
-    tag: "C0009104",
-    action: "store",
-    loc: "STG-2 / SHELF-1",
-    by: "tech-ana",
-  },
-  {
-    ts: "14:21:09",
-    tag: "C0009108",
-    action: "review",
-    loc: "finance mismatch",
-    by: "system",
-  },
-  {
-    ts: "14:24:41",
-    tag: "C0009114",
-    action: "receive",
-    loc: "DOCK-2",
-    by: "tech-ray",
-  },
-  {
-    ts: "14:26:02",
-    tag: "C0009114",
-    action: "store",
-    loc: "STG-3 / SHELF-2",
-    by: "tech-ray",
-  },
+  { ts: "14:02:11", tag: "C0009001", action: "receive", loc: "DOCK-1", by: "tech-mike" },
+  { ts: "14:02:47", tag: "C0009001", action: "store", loc: "STG-1 / SHELF-3", by: "tech-mike" },
+  { ts: "14:08:03", tag: "C0009001", action: "deploy", loc: "BAY-12 / B-04 / U21", by: "tech-mike" },
+  { ts: "14:14:55", tag: "C0009001", action: "transfer", loc: "tech-mike → tech-ana", by: "tech-mike" },
+  { ts: "14:18:22", tag: "C0009104", action: "store", loc: "STG-2 / SHELF-1", by: "tech-ana" },
+  { ts: "14:21:09", tag: "C0009108", action: "review", loc: "finance mismatch", by: "system" },
+  { ts: "14:24:41", tag: "C0009114", action: "receive", loc: "DOCK-2", by: "tech-ray" },
+  { ts: "14:26:02", tag: "C0009114", action: "store", loc: "STG-3 / SHELF-2", by: "tech-ray" },
 ];
 
 const rows = [
-  ["C0000101", "in_service", "BAY-12 / B-04 / U21", "tech-ana", "clean"],
-  ["C0000104", "stored", "STG-1 / SHELF-3", "inventory", "clean"],
-  ["C0000108", "rma_pending", "finance mismatch", "manager", "review"],
-  ["C0000110", "received", "rack mismatch", "tech-mike", "critical"],
-  ["C0000114", "in_service", "BAY-08 / A-02 / U14", "tech-ray", "clean"],
-  ["C0000119", "stored", "STG-2 / SHELF-1", "inventory", "clean"],
-  ["C0000122", "in_service", "BAY-04 / C-01 / U07", "tech-mike", "clean"],
-  ["C0000128", "deploy_pend", "BAY-12 / B-05 / U03", "tech-ana", "review"],
+  ["C0000101", "in_service",   "BAY-12 / B-04 / U21",     "tech-ana",   "clean"],
+  ["C0000104", "stored",       "STG-1 / SHELF-3",          "inventory",  "clean"],
+  ["C0000108", "rma_pending",  "finance mismatch",         "manager",    "review"],
+  ["C0000110", "received",     "rack mismatch",            "tech-mike",  "critical"],
+  ["C0000114", "in_service",   "BAY-08 / A-02 / U14",     "tech-ray",   "clean"],
+  ["C0000119", "stored",       "STG-2 / SHELF-1",          "inventory",  "clean"],
+  ["C0000122", "in_service",   "BAY-04 / C-01 / U07",     "tech-mike",  "clean"],
+  ["C0000128", "deploy_pend",  "BAY-12 / B-05 / U03",     "tech-ana",   "review"],
 ];
 
 const workflows = [
@@ -88,41 +40,25 @@ const workflows = [
     n: "01",
     title: "Receive",
     body: "Scan at the dock. The system creates an ops record, validates against the PO, and locks the tag to inbound state.",
-    bullets: [
-      "PO line matched",
-      "Tag locked to RECEIVED",
-      "Dock + custodian recorded",
-    ],
+    bullets: ["PO line matched", "Tag locked to RECEIVED", "Dock + custodian recorded"],
   },
   {
     n: "02",
     title: "Store",
     body: "Move from dock to shelf. Placement is written to the facilities system in the same scan event.",
-    bullets: [
-      "Storage path validated",
-      "Facilities row updated",
-      "No finance write yet",
-    ],
+    bullets: ["Storage path validated", "Facilities row updated", "No finance write yet"],
   },
   {
     n: "03",
     title: "Deploy",
     body: "Install into a rack. This is the only event that capitalizes the asset in finance — three writes, one transaction.",
-    bullets: [
-      "Ops: in_service",
-      "Facilities: rack assigned",
-      "Finance: capitalized",
-    ],
+    bullets: ["Ops: in_service", "Facilities: rack assigned", "Finance: capitalized"],
   },
   {
     n: "04",
     title: "Transfer",
     body: "Move custody between technicians. The ops record updates; facilities and finance are left alone.",
-    bullets: [
-      "Custody chain extended",
-      "Audit event written",
-      "Idempotent on replay",
-    ],
+    bullets: ["Custody chain extended", "Audit event written", "Idempotent on replay"],
   },
 ];
 
@@ -131,6 +67,51 @@ function ScenePlaceholder() {
     <div className="relative h-[420px] w-full lg:h-[520px]">
       <SceneFallback />
     </div>
+  );
+}
+
+/* Mouse-tracking spotlight card wrapper */
+function WorkflowCard({ w }: { w: (typeof workflows)[0] }) {
+  const ref = useRef<HTMLElement>(null);
+
+  function onMouseMove(e: React.MouseEvent) {
+    const el = ref.current;
+    if (!el) return;
+    const { left, top, width, height } = el.getBoundingClientRect();
+    el.style.setProperty("--mx", `${((e.clientX - left) / width) * 100}%`);
+    el.style.setProperty("--my", `${((e.clientY - top) / height) * 100}%`);
+  }
+
+  return (
+    <article
+      ref={ref}
+      className="card-sweep relative bg-[#0a0a0a] p-7"
+      onMouseMove={onMouseMove}
+    >
+      <div className="relative z-10">
+        <div className="flex items-baseline justify-between">
+          <span className="step-badge">{w.n}</span>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-mute)]">
+            flow
+          </span>
+        </div>
+        <h3 className="display mt-5 text-3xl text-white">{w.title}</h3>
+        <p className="mt-4 max-w-md text-[14px] leading-relaxed text-[var(--text-dim)]">
+          {w.body}
+        </p>
+        <ul className="mt-7 divide-y divide-[var(--border)] border-y hairline">
+          {w.bullets.map((b) => (
+            <li
+              key={b}
+              className="flex items-center gap-3 py-3 font-mono text-[12px] text-[var(--text-dim)]"
+            >
+              <span className="text-emerald-400/70 text-[10px]">✓</span>
+              {b}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </article>
   );
 }
 
@@ -156,21 +137,54 @@ export function StartupLanding() {
 
 function Hero() {
   return (
-    <section className="border-b hairline">
-      <div className="mx-auto grid max-w-6xl gap-12 px-6 py-24 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:py-28">
+    <section className="border-b hairline relative overflow-hidden">
+      {/* Subtle grid overlay */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            "linear-gradient(0deg,rgba(255,255,255,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px)",
+          backgroundSize: "68px 68px",
+          WebkitMaskImage:
+            "linear-gradient(180deg,transparent 0%,rgba(0,0,0,.55) 20% 80%,transparent 100%)",
+          maskImage:
+            "linear-gradient(180deg,transparent 0%,rgba(0,0,0,.55) 20% 80%,transparent 100%)",
+        }}
+      />
+      {/* Blue aurora top-right accent */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(60% 45% at 90% 0%,rgba(56,189,248,.09),transparent 70%),radial-gradient(40% 30% at 70% 15%,rgba(125,211,252,.05),transparent 60%)",
+        }}
+      />
+
+      <div className="relative mx-auto grid max-w-6xl gap-12 px-6 py-24 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:py-28">
         <div className="max-w-2xl">
-          <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)] animate-rise">
+          {/* Live system badge */}
+          <div className="live-badge animate-rise mb-6 w-fit">
+            <span className="live-dot" />
+            fab-2 · live
+          </div>
+
+          <div
+            className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)] animate-rise"
+            style={{ animationDelay: "40ms" }}
+          >
             ops · facilities · finance — one event stream
           </div>
           <h1
             className="display mt-7 text-4xl sm:text-5xl lg:text-[68px] animate-rise"
-            style={{ animationDelay: "60ms" }}
+            style={{ animationDelay: "80ms" }}
           >
             Asset records that match what&apos;s on the floor.
           </h1>
           <p
             className="mt-7 max-w-xl text-[15px] leading-relaxed text-[var(--text-dim)] sm:text-base animate-rise"
-            style={{ animationDelay: "120ms" }}
+            style={{ animationDelay: "140ms" }}
           >
             AssetOps reconciles operations, facilities, and finance against the
             same scan event. No more weekly spreadsheet sweeps. No more
@@ -178,26 +192,20 @@ function Hero() {
           </p>
 
           <div
-            className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 text-[14px] animate-rise"
-            style={{ animationDelay: "180ms" }}
+            className="mt-9 flex flex-wrap items-center gap-x-5 gap-y-3 animate-rise"
+            style={{ animationDelay: "200ms" }}
           >
-            <Link
-              href="/tech/receive"
-              className="text-white underline decoration-white/30 underline-offset-[6px] hover:decoration-white"
-            >
+            <Link href="/tech/receive" className="btn-primary">
               Start scan workflow
             </Link>
-            <Link
-              href="/manager"
-              className="text-[var(--text-dim)] hover:text-white transition"
-            >
+            <Link href="/manager" className="btn-ghost">
               Manager dashboard →
             </Link>
           </div>
 
           <dl
             className="mt-14 grid max-w-md grid-cols-3 gap-6 border-t hairline pt-7 animate-rise"
-            style={{ animationDelay: "240ms" }}
+            style={{ animationDelay: "260ms" }}
           >
             <CountStat to={4} suffix="" l="scan flows" />
             <Stat n="3-way" l="reconciliation" />
@@ -227,15 +235,7 @@ function Stat({ n, l }: { n: string; l: string }) {
   );
 }
 
-function CountStat({
-  to,
-  suffix,
-  l,
-}: {
-  to: number;
-  suffix: string;
-  l: string;
-}) {
+function CountStat({ to, suffix, l }: { to: number; suffix: string; l: string }) {
   const [n, setN] = useState(0);
   useEffect(() => {
     const start = performance.now();
@@ -243,7 +243,6 @@ function CountStat({
     let raf = 0;
     const tick = (t: number) => {
       const p = Math.min(1, (t - start) / dur);
-      // easeOutCubic
       const eased = 1 - Math.pow(1 - p, 3);
       setN(Math.round(to * eased));
       if (p < 1) raf = requestAnimationFrame(tick);
@@ -270,25 +269,42 @@ function Console({ tick }: { tick: number }) {
   const visible = events.slice(start, start + window_);
 
   return (
-    <div className="border hairline">
-      <div className="flex items-center justify-between border-b hairline px-3 py-2 text-[11px] font-mono text-[var(--text-mute)]">
-        <span>events.log</span>
-        <span className="flex items-center gap-2">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+    <div className="terminal">
+      {/* macOS-style titlebar */}
+      <div className="terminal-titlebar">
+        <span
+          className="h-[10px] w-[10px] rounded-full"
+          style={{ background: "#ff5f57" }}
+        />
+        <span
+          className="h-[10px] w-[10px] rounded-full"
+          style={{ background: "#ffbd2e" }}
+        />
+        <span
+          className="h-[10px] w-[10px] rounded-full"
+          style={{ background: "#28c940" }}
+        />
+        <span className="ml-3 flex-1 text-center font-mono text-[11px] text-[var(--text-mute)]">
+          events.log
+        </span>
+        <span className="flex items-center gap-2 text-[11px] font-mono text-[var(--text-mute)]">
+          <span className="live-dot" />
           sunnyvale-fab-2
         </span>
       </div>
+
       <div className="grid grid-cols-[68px_82px_70px_1fr] gap-2 border-b hairline px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-[var(--text-mute)]">
         <span>time</span>
         <span>tag</span>
         <span>action</span>
         <span>where</span>
       </div>
+
       <div className="divide-y divide-[var(--border)] font-mono text-[12px]">
         {visible.map((e, i) => (
           <div
             key={`${tick}-${i}`}
-            className="console-row grid grid-cols-[68px_82px_70px_1fr] gap-2 px-3 py-2"
+            className="console-row grid grid-cols-[68px_82px_70px_1fr] gap-2 px-3 py-2 transition hover:bg-white/[0.018]"
             style={{ animationDelay: `${i * 30}ms` }}
           >
             <span className="text-[var(--text-mute)]">{e.ts}</span>
@@ -306,6 +322,7 @@ function Console({ tick }: { tick: number }) {
           </div>
         ))}
       </div>
+
       <div className="border-t hairline px-3 py-2 text-[11px] font-mono text-[var(--text-mute)]">
         streaming · {events.length} events buffered
       </div>
@@ -326,11 +343,12 @@ function LiveBoard({ tick }: { tick: number }) {
               Every scan, every system, one source of truth.
             </h2>
           </div>
-          <div className="flex items-center gap-2 text-[12px] font-mono text-[var(--text-dim)]">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          <div className="live-badge">
+            <span className="live-dot" />
             streaming
           </div>
         </div>
+
         <div className="mt-10 grid gap-px bg-[var(--border)] md:grid-cols-[1.1fr_1fr]">
           <div className="bg-[#0a0a0a]">
             <Console tick={tick} />
@@ -339,19 +357,24 @@ function LiveBoard({ tick }: { tick: number }) {
             <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-mute)]">
               status — last 60s
             </div>
-            <div className="mt-5 grid grid-cols-3 gap-px bg-[var(--border)]">
-              {[
-                ["clean", "41", "emerald"],
-                ["review", "12", "amber"],
-                ["critical", "4", "rose"],
-              ].map(([l, v, c]) => (
-                <div key={l} className="bg-[#0a0a0a] p-4">
+            <div className="mt-5 grid grid-cols-3 gap-3">
+              {(
+                [
+                  ["clean",    "41", "emerald", "sc-clean"],
+                  ["review",   "12", "amber",   "sc-review"],
+                  ["critical", "4",  "rose",    "sc-crit"],
+                ] as const
+              ).map(([l, v, c, sc]) => (
+                <div
+                  key={l}
+                  className={`status-count bg-[#0a0a0a] border hairline p-4 ${sc}`}
+                >
                   <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-mute)]">
                     {l}
                   </div>
                   <div
                     className={
-                      "mt-2 text-2xl font-medium tracking-tight " +
+                      "mt-2 text-2xl font-medium tracking-tight tabular-nums " +
                       (c === "emerald"
                         ? "text-emerald-300"
                         : c === "amber"
@@ -364,13 +387,14 @@ function LiveBoard({ tick }: { tick: number }) {
                 </div>
               ))}
             </div>
+
             <div className="mt-6 space-y-3 text-[12px] font-mono text-[var(--text-dim)]">
               {[
-                ["receive", "DOCK-1 → DOCK-2", "2/min"],
-                ["deploy", "BAY-04 / BAY-12", "0.4/min"],
-                ["reconcile", "ops ↔ fin", "auto"],
+                ["receive",   "DOCK-1 → DOCK-2",  "2/min"],
+                ["deploy",    "BAY-04 / BAY-12",  "0.4/min"],
+                ["reconcile", "ops ↔ fin",        "auto"],
               ].map(([k, w, r]) => (
-                <div key={k} className="grid grid-cols-[80px_1fr_60px] gap-3">
+                <div key={k} className="grid grid-cols-[80px_1fr_60px] gap-3 transition hover:text-[var(--text)]">
                   <span className="text-white">{k}</span>
                   <span className="truncate text-[var(--text-mute)]">{w}</span>
                   <span className="text-right text-[var(--text-dim)]">{r}</span>
@@ -405,36 +429,7 @@ function WorkflowsPinned() {
 
         <div className="mt-12 grid gap-px overflow-hidden border hairline bg-[var(--border)] md:grid-cols-2">
           {workflows.map((w) => (
-            <article
-              key={w.title}
-              className="card-sweep relative bg-[#0a0a0a] p-7"
-            >
-              <div className="relative z-10">
-                <div className="flex items-baseline justify-between">
-                  <span className="font-mono text-[11px] text-[var(--text-mute)]">
-                    {w.n}
-                  </span>
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--text-mute)]">
-                    flow
-                  </span>
-                </div>
-                <h3 className="display mt-5 text-3xl text-white">{w.title}</h3>
-                <p className="mt-4 max-w-md text-[14px] leading-relaxed text-[var(--text-dim)]">
-                  {w.body}
-                </p>
-                <ul className="mt-7 divide-y divide-[var(--border)] border-y hairline">
-                  {w.bullets.map((b) => (
-                    <li
-                      key={b}
-                      className="flex items-center gap-3 py-3 font-mono text-[12px] text-[var(--text-dim)]"
-                    >
-                      <span className="text-[var(--text-mute)]">›</span>
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </article>
+            <WorkflowCard key={w.title} w={w} />
           ))}
         </div>
       </div>
@@ -459,13 +454,14 @@ function Reconcile() {
           </p>
           <Link
             href="/manager/reconcile"
-            className="mt-7 inline-block text-[13px] text-white underline decoration-white/30 underline-offset-[6px] hover:decoration-white"
+            className="btn-primary mt-8 w-fit"
           >
             Open reconciliation
           </Link>
         </div>
 
-        <div className="border hairline">
+        <div className="terminal">
+          {/* Table header */}
           <div className="grid grid-cols-4 border-b hairline">
             {["tag", "ops", "facilities", "finance"].map((h) => (
               <div
@@ -478,25 +474,31 @@ function Reconcile() {
           </div>
           {(
             [
-              ["C0000108", "rma_pending", "BAY-12 / B-04", "—"],
-              ["C0000110", "received", "—", "capitalized"],
-              ["C0000128", "deploy_pend", "BAY-12 / B-05", "—"],
-              ["C0000131", "in_service", "BAY-04 / C-01", "capitalized"],
-              ["C0000133", "in_service", "BAY-04 / C-02", "capitalized"],
+              ["C0000108", "rma_pending",  "BAY-12 / B-04", "—"],
+              ["C0000110", "received",     "—",             "capitalized"],
+              ["C0000128", "deploy_pend",  "BAY-12 / B-05", "—"],
+              ["C0000131", "in_service",   "BAY-04 / C-01", "capitalized"],
+              ["C0000133", "in_service",   "BAY-04 / C-02", "capitalized"],
             ] as const
-          ).map((r) => (
-            <div
-              key={r[0]}
-              className="grid grid-cols-4 border-b hairline last:border-b-0 font-mono text-[12px]"
-            >
-              <span className="border-r hairline px-3 py-2.5 text-white">
-                {r[0]}
-              </span>
-              <span className={cell(r[1])}>{r[1]}</span>
-              <span className={cell(r[2])}>{r[2]}</span>
-              <span className={cell(r[3], true)}>{r[3]}</span>
-            </div>
-          ))}
+          ).map((r) => {
+            const hasMismatch = r[1] === "—" || r[2] === "—" || r[3] === "—";
+            return (
+              <div
+                key={r[0]}
+                className={
+                  "grid grid-cols-4 border-b hairline last:border-b-0 font-mono text-[12px] transition hover:bg-white/[0.02] " +
+                  (hasMismatch ? "row-mismatch" : "")
+                }
+              >
+                <span className="border-r hairline px-3 py-2.5 text-white">
+                  {r[0]}
+                </span>
+                <span className={cell(r[1])}>{r[1]}</span>
+                <span className={cell(r[2])}>{r[2]}</span>
+                <span className={cell(r[3], true)}>{r[3]}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -527,7 +529,7 @@ function Estate() {
           </div>
         </div>
 
-        <div className="mt-10 border hairline">
+        <div className="mt-10 terminal">
           <div className="grid grid-cols-[110px_120px_1fr_120px_90px] gap-3 border-b hairline px-4 py-2.5 text-[10px] font-mono uppercase tracking-wider text-[var(--text-mute)]">
             <span>tag</span>
             <span>state</span>
@@ -538,7 +540,10 @@ function Estate() {
           {rows.map((r) => (
             <div
               key={r[0]}
-              className="grid grid-cols-[110px_120px_1fr_120px_90px] items-center gap-3 border-b hairline px-4 py-3 font-mono text-[12px] last:border-b-0 transition hover:bg-white/[0.015]"
+              className={
+                "grid grid-cols-[110px_120px_1fr_120px_90px] items-center gap-3 border-b hairline px-4 py-3 font-mono text-[12px] last:border-b-0 transition hover:bg-white/[0.022] " +
+                (r[4] === "critical" ? "row-mismatch" : "")
+              }
             >
               <Link
                 href={`/manager/assets/${r[0]}`}
@@ -571,23 +576,17 @@ function Estate() {
 
 function Cta() {
   return (
-    <section className="border-b hairline">
+    <section className="border-b hairline cta-glow">
       <div className="mx-auto max-w-6xl px-6 py-24">
         <div className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end">
           <h2 className="display max-w-3xl text-4xl sm:text-5xl">
             Open the console. Scan one asset. See it propagate.
           </h2>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-[14px]">
-            <Link
-              href="/tech"
-              className="text-white underline decoration-white/30 underline-offset-[6px] hover:decoration-white"
-            >
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            <Link href="/tech" className="btn-primary">
               Technician console
             </Link>
-            <Link
-              href="/dev/barcodes"
-              className="text-[var(--text-dim)] hover:text-white transition"
-            >
+            <Link href="/dev/barcodes" className="btn-ghost">
               Print test barcodes →
             </Link>
           </div>
@@ -599,7 +598,7 @@ function Cta() {
 
 function Foot() {
   return (
-    <footer>
+    <footer className="footer-sep">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 text-[12px] text-[var(--text-mute)] font-mono">
         <span>AssetOps · Cerebras manufacturing</span>
         <span>build 0.4.2 · {new Date().getFullYear()}</span>
