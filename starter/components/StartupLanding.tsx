@@ -107,7 +107,7 @@ const workflows = [
   {
     n: "03",
     title: "Deploy",
-    body: "Install into a rack. This is the only event that capitalizes the asset in finance — three writes, one transaction.",
+    body: "Install into a rack. This is the only event that capitalizes the asset in finance — three writes, one scan.",
     bullets: [
       "Ops: in_service",
       "Facilities: rack assigned",
@@ -602,7 +602,10 @@ function Foot() {
     <footer>
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 text-[12px] text-[var(--text-mute)] font-mono">
         <span>AssetOps · Cerebras manufacturing</span>
-        <span>build 0.4.2 · {new Date().getFullYear()}</span>
+        <span>
+          build {process.env.NEXT_PUBLIC_APP_VERSION ?? "dev"} ·{" "}
+          {new Date().getFullYear()}
+        </span>
       </div>
     </footer>
   );
