@@ -40,17 +40,21 @@ export default async function ManagerLandingPage({
   const q = params.q?.trim().toLowerCase() ?? "";
   const page = Math.max(1, Number(params.page ?? "1") || 1);
 
-  const assetsPromise = api.assets.list();
-  const [allAssets, reconcileReport] = await Promise.all([
+  // The upstream API supports state/site/custodian filtering — pass those
+  // through instead of filtering in-memory. The reconcile report always needs
+  // the full estate, so it keeps its own unfiltered list; when no filters are
+  // active both consumers share one request.
+  const hasFilters = Boolean(state || site || custodian);
+  const allAssetsPromise = api.assets.list();
+  const assetsPromise = hasFilters
+    ? api.assets.list({ state, site, custodian })
+    : allAssetsPromise;
+  const [assets, reconcileReport] = await Promise.all([
     assetsPromise,
-    buildReconcileReport(assetsPromise),
+    buildReconcileReport(allAssetsPromise),
   ]);
-  const assets = allAssets.filter((asset) => {
-    if (state && asset.state !== state) return false;
-    if (site && asset.location.site !== site) return false;
-    if (custodian && asset.custodian !== custodian) return false;
-    return true;
-  });
+  // Free-text search stays in-memory: the upstream list endpoint has no `q`
+  // parameter.
   const filtered = q
     ? assets.filter((asset) =>
         [
