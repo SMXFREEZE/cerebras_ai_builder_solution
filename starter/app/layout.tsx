@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import { MobileNav } from "@/components/MobileNav";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { VantaFogBackground } from "@/components/VantaFogBackground";
@@ -37,6 +38,7 @@ export default function RootLayout({
                 <HeaderLink href="/manager/reconcile">Reconcile</HeaderLink>
               </nav>
               <RoleSwitcher />
+              <MobileNav />
             </div>
           </div>
         </header>
