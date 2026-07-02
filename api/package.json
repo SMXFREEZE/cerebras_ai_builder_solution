@@ -6,7 +6,7 @@
   "description": "Asset tracking dummy backend for the SWE intern take-home challenge.",
   "main": "dist/index.js",
   "engines": {
-    "node": "22.x"
+    "node": ">=22"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^10.0.1",
-    "better-sqlite3": "^11.5.0",
+    "better-sqlite3": "^12.4.1",
     "fastify": "^5.1.0",
     "ulid": "^2.3.0",
     "zod": "^3.23.8"
