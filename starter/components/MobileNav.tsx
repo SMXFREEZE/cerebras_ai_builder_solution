@@ -61,7 +61,7 @@ export function MobileNav() {
         <nav
           id={panelId}
           aria-label="Primary"
-          className="absolute inset-x-0 top-full border-b border-white/10 bg-[#05070d]/97 backdrop-blur-xl"
+          className="absolute inset-x-0 top-full border-b border-white/10 bg-[#05070d]/95 shadow-[0_16px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl"
         >
           <div className="mx-auto max-w-7xl space-y-1 px-4 py-3">
             {LINKS.map((link) => (
