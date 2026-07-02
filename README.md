@@ -1,5 +1,13 @@
 # AssetOps
 
+[![CI](https://github.com/SMXFREEZE/cerebras_ai_builder_solution/actions/workflows/ci.yml/badge.svg)](https://github.com/SMXFREEZE/cerebras_ai_builder_solution/actions/workflows/ci.yml)
+[![Next.js 15](https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![React 19](https://img.shields.io/badge/React-19-087ea4?logo=react&logoColor=white)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Fastify 5](https://img.shields.io/badge/Fastify-5-202020?logo=fastify&logoColor=white)](https://fastify.dev/)
+[![Vitest](https://img.shields.io/badge/tested_with-Vitest-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 **A scanner-first asset control tower for Cerebras manufacturing.**
 
 AssetOps keeps operations, facilities, and finance aligned from the same scan event. The product is built around two moments that decide whether an asset system works in the real world:
@@ -8,6 +16,45 @@ AssetOps keeps operations, facilities, and finance aligned from the same scan ev
 - **8:55 AM before standup:** a manager has 60 seconds to understand what is drifting, who owns it, and which evidence supports the next action.
 
 This is not a generic inventory CRUD dashboard. It is a prototype for manufacturing traceability: fast scan flows, explicit writebacks, forensic event history, and a reconciliation report that says what to do instead of dumping a raw diff.
+
+## Architecture
+
+The browser never holds the upstream API token. Every data call goes through
+the Next.js server, which attaches the bearer token before forwarding.
+
+```mermaid
+flowchart LR
+    B[Browser] -->|same-origin requests| N["Next.js app (starter/)"]
+    N -->|"/api/upstream/* proxy<br/>attaches API_TOKEN server-side"| U{Upstream API}
+    U -->|local dev| F["Fastify 5 (api/src)"]
+    U -->|production| V["Vercel serverless API (api/api/[...path].js)"]
+    F --> S[("SQLite<br/>api/data/asset-tracking.db")]
+    V --> P[("Supabase Postgres<br/>shared demo state")]
+    N -->|"/api/workflows/* writes<br/>/api/reconcile 3-way join"| U
+```
+
+See [`docs/CODE_MAP.md`](./docs/CODE_MAP.md) for the full file map.
+
+## Screenshots
+
+Captured from the local stack (Fastify API on `:8080`, Next.js dev on `:3210`)
+with headless Chrome at 1440px.
+
+![AssetOps landing page: dark hero with 3D wireframe asset graph](docs/assets/landing.png)
+
+_Landing — scanner-first positioning, 3D asset graph hero, Vanta fog backdrop._
+
+![Receive at the dock: two-step inbound scan flow with item details and scan tag input](docs/assets/tech-receive.png)
+
+_`/tech/receive` — inbound scan flow: item details first, then the large monospace scan input with camera fallback._
+
+![Manager asset control tower: standup brief, severity metrics, and first actions](docs/assets/manager.png)
+
+_`/manager` — standup brief first, exception metrics second, searchable asset table after that._
+
+![Three-way reconciliation report with fix-today, needs-a-human, and probably-fine buckets](docs/assets/manager-reconcile.png)
+
+_`/manager/reconcile` — ops/facilities/finance drift translated into manager language with evidence links._
 
 ## Start here
 
@@ -258,7 +305,7 @@ That middle preview is not decoration. It catches wrong-tag mistakes before the 
 
 The manager page starts with a standup brief instead of a table.
 
-The table is still there, with server-side filtering and pagination, but it is not the first thing on the screen. A manager opening the product cold needs the highest-priority exception, the owner, and the reason it matters. Search and filtering can wait until after that context exists.
+The table is still there, but it is not the first thing on the screen. The state, site, and custodian filters are passed through to the upstream API; free-text search and pagination run in the app because the list endpoint does not support them. A manager opening the product cold needs the highest-priority exception, the owner, and the reason it matters. Search and filtering can wait until after that context exists.
 
 The asset detail page treats the event log as the forensic source of truth. It renders the current state first, then the newest-first event stream with scan payloads and state/location changes visible.
 
